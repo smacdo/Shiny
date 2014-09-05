@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30501.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ShinyInterpreter", "ShinyInterpreter\ShinyInterpreter.vcxproj", "{BCC0B4B4-7C9F-4510-AC21-646F26B8159E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ShinyRuntime", "ShinyRuntime\ShinyRuntime.vcxproj", "{D0D3563C-3CEF-44A6-9FA6-3E8B73D50D2D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ShinyUnitTests", "ShinyUnitTests\ShinyUnitTests.vcxproj", "{D9977CB5-FE4E-4D03-914B-00DAD12D7100}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BCC0B4B4-7C9F-4510-AC21-646F26B8159E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BCC0B4B4-7C9F-4510-AC21-646F26B8159E}.Debug|Win32.Build.0 = Debug|Win32
+		{BCC0B4B4-7C9F-4510-AC21-646F26B8159E}.Release|Win32.ActiveCfg = Release|Win32
+		{BCC0B4B4-7C9F-4510-AC21-646F26B8159E}.Release|Win32.Build.0 = Release|Win32
+		{D0D3563C-3CEF-44A6-9FA6-3E8B73D50D2D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D0D3563C-3CEF-44A6-9FA6-3E8B73D50D2D}.Debug|Win32.Build.0 = Debug|Win32
+		{D0D3563C-3CEF-44A6-9FA6-3E8B73D50D2D}.Release|Win32.ActiveCfg = Release|Win32
+		{D0D3563C-3CEF-44A6-9FA6-3E8B73D50D2D}.Release|Win32.Build.0 = Release|Win32
+		{D9977CB5-FE4E-4D03-914B-00DAD12D7100}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D9977CB5-FE4E-4D03-914B-00DAD12D7100}.Debug|Win32.Build.0 = Debug|Win32
+		{D9977CB5-FE4E-4D03-914B-00DAD12D7100}.Release|Win32.ActiveCfg = Release|Win32
+		{D9977CB5-FE4E-4D03-914B-00DAD12D7100}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -19,3 +19,16 @@
 *.exe
 *.out
 *.app
+*.ilk
+*.pdb
+*.exp
+*.opensdf
+*.sdf
+*.suo
+*.log
+*.pch
+*.tlog
+*.cache
+*.idb
+*.filters
+*.ipch
