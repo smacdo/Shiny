@@ -1,10 +1,8 @@
 #include "InteractiveSession.h"
 
-int main(int argc, char* argv[])
-{
-    InteractiveSession session;
-    session.Run();
+int main(int argc, char *argv[]) {
+  InteractiveSession session;
+  session.Run();
 
-	return 0;
+  return 0;
 }
-

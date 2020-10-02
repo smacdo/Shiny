@@ -4,12 +4,10 @@
 
 class Object;
 
-class Reader
-{
+class Reader {
 public:
-    Reader();
-    ~Reader();
+  Reader();
+  ~Reader();
 
-    Object * Read(const std::string& input);
+  Object *Read(const std::string &input);
 };
-

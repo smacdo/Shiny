@@ -3,41 +3,36 @@
 
 #include <string>
 
-enum class ObjectType
-{
-    Fixnum
-};
+enum class ObjectType { Fixnum };
 
-class Object
-{
+class Object {
 public:
-    virtual ~Object();
+  virtual ~Object();
 
-    ObjectType Type() const;
+  ObjectType Type() const;
 
-    virtual std::string ToString() const = 0;
+  virtual std::string ToString() const = 0;
 
 protected:
-    Object(const Object& object);
-    Object(ObjectType type);
+  Object(const Object &object);
+  Object(ObjectType type);
 
 private:
-    ObjectType mType;
+  ObjectType mType;
 };
 
-class FixnumObject : public Object
-{
+class FixnumObject : public Object {
 public:
-    FixnumObject(int value);
-    FixnumObject(const FixnumObject& object);
+  FixnumObject(int value);
+  FixnumObject(const FixnumObject &object);
 
-    ~FixnumObject();
+  ~FixnumObject();
 
-    virtual std::string ToString() const override;
+  virtual std::string ToString() const override;
 
-    int Value() const;
-    void SetValue(int newValue);
+  int Value() const;
+  void SetValue(int newValue);
 
 private:
-    int mValue;
+  int mValue;
 };

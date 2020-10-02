@@ -2,12 +2,10 @@
 // Forward declarations.
 class Object;
 
-class Evaluator
-{
+class Evaluator {
 public:
-    Evaluator();
-    ~Evaluator();
+  Evaluator();
+  ~Evaluator();
 
-    Object* Evaluate(Object * pExpression);
+  Object *Evaluate(Object *pExpression);
 };
-

@@ -3,15 +3,11 @@
 
 #include <string>
 
-Reader::Reader()
-{
-}
+//--------------------------------------------------------------------------------------------------
+Reader::Reader() {}
 
-Reader::~Reader()
-{
-}
+//--------------------------------------------------------------------------------------------------
+Reader::~Reader() {}
 
-Object * Reader::Read(const std::string& input)
-{
-    return new FixnumObject(42);
-}
+//--------------------------------------------------------------------------------------------------
+Object *Reader::Read(const std::string &input) { return new FixnumObject(42); }

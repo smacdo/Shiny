@@ -2,18 +2,16 @@
 
 #include <string>
 
-class InteractiveSession
-{
+class InteractiveSession {
 public:
-    InteractiveSession();
-    ~InteractiveSession();
+  InteractiveSession();
+  ~InteractiveSession();
 
-    void Run();
+  void Run();
 
 private:
-    void MainLoop();
-    std::string GetUserInput() const;
-    void OnStart();
-    void OnStop();
+  void MainLoop();
+  std::string GetUserInput() const;
+  void OnStart();
+  void OnStop();
 };
-
