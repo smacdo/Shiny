@@ -1,5 +1,4 @@
-#include "stdafx.h"
-#include "Object.h"
+#include "runtime/Object.h"
 
 Object::Object(ObjectType type)
     : mType(type)

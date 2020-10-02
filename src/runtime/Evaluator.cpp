@@ -1,6 +1,4 @@
-#include "stdafx.h"
-#include "Evaluator.h"
-
+#include "runtime/Evaluator.h"
 
 Evaluator::Evaluator()
 {

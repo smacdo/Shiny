@@ -1,10 +1,8 @@
-#include "stdafx.h"
-
 #include "InteractiveSession.h"
 
-#include "Reader.h"
-#include "Evaluator.h"
-#include "Object.h"
+#include "runtime/Reader.h"
+#include "runtime/Evaluator.h"
+#include "runtime/Object.h"
 
 #include <iostream>
 #include <string>

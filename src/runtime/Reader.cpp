@@ -1,7 +1,5 @@
-#include "stdafx.h"
-#include "Reader.h"
-
-#include "FixnumObject.h"
+#include "runtime/Reader.h"
+#include "runtime/Object.h"
 
 #include <string>
 

@@ -1,8 +1,6 @@
-#include "stdafx.h"
 #include <string>
 #include <sstream>
-#include "FixnumObject.h"
-
+#include "runtime/Object.h"
 
 FixnumObject::FixnumObject(int value)
     : Object(ObjectType::Fixnum),
