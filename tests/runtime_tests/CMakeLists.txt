@@ -2,7 +2,7 @@ project(test-shiny-runtime)
 
 add_executable(test-shiny-runtime
     TestMain.cpp
-    testset1.cpp
+    UnitTest1.cpp
 )
 
 set_target_properties(test-shiny-runtime

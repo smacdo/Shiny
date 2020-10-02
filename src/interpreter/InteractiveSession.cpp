@@ -1,8 +1,8 @@
 #include "InteractiveSession.h"
 
 #include "runtime/Evaluator.h"
-#include "runtime/Object.h"
 #include "runtime/Reader.h"
+#include "runtime/Value.h"
 
 #include <iostream>
 #include <string>
@@ -27,13 +27,8 @@ void InteractiveSession::MainLoop() {
 
   while (true) {
     Reader reader;
-    Object *pResult = evaluator.Evaluate(reader.Read(GetUserInput()));
-
-    if (pResult != nullptr) {
-      std::cout << pResult->ToString() << std::endl;
-    }
-
-    delete pResult;
+    auto result = evaluator.Evaluate(reader.Read(GetUserInput()));
+    std::cout << result << std::endl; // TODO: use stream operator.
   }
 }
 

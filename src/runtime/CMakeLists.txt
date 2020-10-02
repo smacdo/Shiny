@@ -2,9 +2,13 @@ project(shiny-runtime)
 
 add_library(shiny-runtime
     Evaluator.cpp
-    FixnumObject.cpp
-    Object.cpp
     Reader.cpp
+    Value.cpp
+)
+
+target_compile_features(shiny-runtime
+    PUBLIC
+        cxx_std_17
 )
 
 target_include_directories(shiny-runtime

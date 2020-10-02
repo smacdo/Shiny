@@ -1,11 +1,10 @@
 #pragma once
-// Forward declarations.
-class Object;
+#include "runtime/Value.h"
 
 class Evaluator {
 public:
   Evaluator();
   ~Evaluator();
 
-  Object *Evaluate(Object *pExpression);
+  Shiny::Value Evaluate(Shiny::Value expression);
 };

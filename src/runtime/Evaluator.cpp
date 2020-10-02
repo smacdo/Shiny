@@ -1,7 +1,12 @@
 #include "runtime/Evaluator.h"
 
+using namespace Shiny;
+
+//--------------------------------------------------------------------------------------------------
 Evaluator::Evaluator() {}
 
+//--------------------------------------------------------------------------------------------------
 Evaluator::~Evaluator() {}
 
-Object *Evaluator::Evaluate(Object *pExpression) { return pExpression; }
+//--------------------------------------------------------------------------------------------------
+Value Evaluator::Evaluate(Value expression) { return expression; }

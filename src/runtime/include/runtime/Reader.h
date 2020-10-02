@@ -1,5 +1,5 @@
 #pragma once
-
+#include "runtime/Value.h"
 #include <string>
 
 class Object;
@@ -9,5 +9,6 @@ public:
   Reader();
   ~Reader();
 
-  Object *Read(const std::string &input);
+  // TODO: string_view?
+  Shiny::Value Read(const std::string &input);
 };

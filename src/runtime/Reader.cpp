@@ -1,7 +1,9 @@
 #include "runtime/Reader.h"
-#include "runtime/Object.h"
+#include "runtime/Value.h"
 
 #include <string>
+
+using namespace Shiny;
 
 //--------------------------------------------------------------------------------------------------
 Reader::Reader() {}
@@ -10,4 +12,4 @@ Reader::Reader() {}
 Reader::~Reader() {}
 
 //--------------------------------------------------------------------------------------------------
-Object *Reader::Read(const std::string &input) { return new FixnumObject(42); }
+Value Reader::Read(const std::string &input) { return Value{42}; }
