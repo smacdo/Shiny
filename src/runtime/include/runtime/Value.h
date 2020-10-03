@@ -16,7 +16,9 @@ namespace Shiny {
   class Value {
   public:
     /** Fixnum constructor. */
-    explicit Value(fixnum_t fixnum) : type_(ValueType::Fixnum), fixnum_value(fixnum) {}
+    explicit Value(fixnum_t fixnum)
+        : type_(ValueType::Fixnum),
+          fixnum_value(fixnum) {}
 
     /** Get the type for this value. */
     ValueType type() const noexcept { return type_; }
@@ -37,6 +39,21 @@ namespace Shiny {
       }
     }
 
+  public:
+    bool operator==(const Value& rhs) const {
+      if (type_ != rhs.type_) {
+        return false;
+      } else {
+        switch (type_) {
+        case ValueType::Fixnum:
+          return fixnum_value == rhs.fixnum_value;
+        default:
+          // TODO: better exception.
+          throw std::runtime_error("need to implement == for type");
+        }
+      }
+    }
+
   private:
     ValueType type_ = ValueType::None;
     union {
@@ -44,7 +61,6 @@ namespace Shiny {
     };
   };
 
-  // TODO: fix auto formatting here.
-  std::ostream &operator<<(std::ostream &os, const Value &v);
+  std::ostream& operator<<(std::ostream& os, const Value& v);
 
 } // namespace Shiny

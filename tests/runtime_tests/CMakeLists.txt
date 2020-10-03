@@ -2,7 +2,9 @@ project(test-shiny-runtime)
 
 add_executable(test-shiny-runtime
     TestMain.cpp
-    UnitTest1.cpp
+    CharacterStreamTests.cpp
+    ExceptionTests.cpp
+    ReaderTests.cpp
 )
 
 set_target_properties(test-shiny-runtime
@@ -21,3 +23,13 @@ target_link_libraries(test-shiny-runtime
         shiny-runtime
         spdlog
 )
+
+if(MSVC)
+  target_compile_options(test-shiny-runtime
+    PRIVATE
+        /WX)
+else()
+  target_compile_options(test-shiny-runtime
+    PRIVATE
+        -Werror)
+endif()

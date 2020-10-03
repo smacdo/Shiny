@@ -7,6 +7,8 @@
 #include <iostream>
 #include <string>
 
+using namespace Shiny;
+
 //--------------------------------------------------------------------------------------------------
 InteractiveSession::InteractiveSession() {}
 
@@ -27,7 +29,7 @@ void InteractiveSession::MainLoop() {
 
   while (true) {
     Reader reader;
-    auto result = evaluator.Evaluate(reader.Read(GetUserInput()));
+    auto result = evaluator.Evaluate(reader.read(GetUserInput()));
     std::cout << result << std::endl; // TODO: use stream operator.
   }
 }
