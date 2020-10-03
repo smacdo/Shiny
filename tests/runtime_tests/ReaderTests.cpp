@@ -20,7 +20,7 @@ TEST_CASE("Can read fixnums", "[Reader]") {
 
   // supports at least int32 sized integers.
   REQUIRE(Value{2147483647} == read("2147483647"));
-  REQUIRE(Value{-2147483648} == read("-2147483648"));
+  REQUIRE(Value{-2147483647} == read("-2147483647"));
 
   // numbers can be start with zero.
   REQUIRE(Value{7} == read("007"));

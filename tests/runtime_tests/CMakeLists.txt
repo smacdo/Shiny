@@ -5,6 +5,7 @@ add_executable(test-shiny-runtime
     CharacterStreamTests.cpp
     ExceptionTests.cpp
     ReaderTests.cpp
+    ValueTests.cpp
 )
 
 set_target_properties(test-shiny-runtime

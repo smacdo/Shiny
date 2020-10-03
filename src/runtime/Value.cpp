@@ -9,15 +9,18 @@ std::string Value::toString() const {
   std::ostringstream ss;
 
   switch (type_) {
-  case ValueType::None:
-    ss << "nil"; // TODO: Not sure if correct.
+  case ValueType::Null:
+    ss << "()";
+    break;
+  case ValueType::Boolean:
+    ss << (bool_value ? "#t" : "#f");
     break;
   case ValueType::Fixnum:
     ss << fixnum_value;
     break;
   default:
-    // TODO: Better exceptions.
-    throw std::runtime_error("unsupported type for tostring");
+    throw Exception(
+        "Missing implementation for this type", EXCEPTION_CALLSITE_ARGS);
     break;
   }
 
@@ -25,7 +28,7 @@ std::string Value::toString() const {
 }
 
 //--------------------------------------------------------------------------------------------------
-std::ostream &Shiny::operator<<(std::ostream &os, const Value &v) {
+std::ostream& Shiny::operator<<(std::ostream& os, const Value& v) {
   // TODO: handle internally w/out converting to a string.
   os << v.toString();
   return os;
