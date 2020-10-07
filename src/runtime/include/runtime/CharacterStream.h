@@ -3,6 +3,12 @@
 #include <string_view>
 
 namespace Shiny {
+  struct CharacterStreamPosition {
+    size_t offset;
+    int col;
+    int lineNumber;
+  };
+
   /** Represents an array of characters as a stream. */
   class CharacterStream {
   public:
@@ -16,7 +22,9 @@ namespace Shiny {
     int lineNumber() const noexcept { return lineNumber_; }
 
     /** Get character index. */
-    size_t position() const noexcept { return pos_; }
+    CharacterStreamPosition position() const noexcept {
+      return {pos_, col_, lineNumber_};
+    }
 
     /** Get if there are more characters left in the stream. */
     bool hasNext() const noexcept;

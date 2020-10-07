@@ -65,5 +65,6 @@
     "editor.minimap.maxColumn": 1,
     "C_Cpp.clang_format_fallbackStyle": "LLVM",
     "editor.formatOnSave": true,
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
+    "cmake.configureOnOpen": true
 }

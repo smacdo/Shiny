@@ -18,7 +18,7 @@ namespace Shiny {
   class Value {
   public:
     /** Default constructor creates a null value. */
-    constexpr Value() noexcept : type_(ValueType::Null) {}
+    constexpr Value() noexcept : type_(ValueType::Null), fixnum_value(0) {}
 
     /** Bool constructor. */
     explicit constexpr Value(bool value) noexcept

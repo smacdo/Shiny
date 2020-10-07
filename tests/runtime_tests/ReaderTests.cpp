@@ -27,4 +27,23 @@ TEST_CASE("Can read fixnums", "[Reader]") {
   REQUIRE(Value{7} == read("0000000000000000000007"));
 }
 
-// TODO: Test error cases for fixnum.
+TEST_CASE("Rejects invalid fixnums", "[Reader]") {
+  REQUIRE_THROWS_AS([]() { read("1e"); }(), ReaderException);
+  REQUIRE_THROWS_AS([]() { read("2+31"); }(), ReaderException);
+  REQUIRE_THROWS_AS([]() { read("2.4"); }(), ReaderException);
+  REQUIRE_THROWS_AS([]() { read("+1"); }(), ReaderException);
+  REQUIRE_THROWS_AS([]() { read("--1"); }(), ReaderException);
+}
+
+TEST_CASE("Can read boolean", "[Reader]") {
+  REQUIRE(Value{true} == read("#t"));
+  REQUIRE(Value{false} == read("#f"));
+}
+
+TEST_CASE("Rejects invalid booleans", "[Reader]") {
+  REQUIRE_THROWS_AS([]() { read("#true"); }(), ReaderException);
+  REQUIRE_THROWS_AS([]() { read("#T"); }(), ReaderException);
+  REQUIRE_THROWS_AS([]() { read("#false"); }(), ReaderException);
+  REQUIRE_THROWS_AS([]() { read("#F"); }(), ReaderException);
+  REQUIRE_THROWS_AS([]() { read("#nope"); }(), ReaderException);
+}

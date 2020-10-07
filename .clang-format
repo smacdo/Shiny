@@ -6,6 +6,7 @@ AlignAfterOpenBracket: AlwaysBreak
 AllowAllConstructorInitializersOnNextLine: false
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: false
 BinPackParameters: false
 ColumnLimit: 80
 BreakConstructorInitializers: BeforeColon
