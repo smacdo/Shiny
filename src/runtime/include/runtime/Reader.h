@@ -15,6 +15,7 @@ namespace Shiny {
   private:
     Value readFixnum(CharacterStream& input);
     Value readBoolean(CharacterStream& input);
+    Value readCharacter(CharacterStream& input);
 
     /** Advance past whitespace including comments. */
     static void skipWhitespace(CharacterStream& input);
@@ -24,6 +25,10 @@ namespace Shiny {
 
     /** Peek if character is a delimitter or end of stream. */
     static bool peekIsDelimOrEnd(const CharacterStream& input, size_t offset);
+
+    /** Peek and advance if next characters match. */
+    static bool
+    consumeIfMatches(CharacterStream& input, std::string_view needle);
 
   private:
   };

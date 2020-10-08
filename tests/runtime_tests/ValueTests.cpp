@@ -115,3 +115,56 @@ TEST_CASE("Boolean values", "[Value]") {
     REQUIRE_FALSE(t == Value{22});
   }
 }
+
+TEST_CASE("Character values", "[Value]") {
+  const Value a{'a'};
+  Value b{'b'};
+  Value x{'x'};
+
+  SECTION("are always of type char") {
+    REQUIRE(ValueType::Character == a.type());
+    REQUIRE(ValueType::Character == b.type());
+    REQUIRE(ValueType::Character == x.type());
+  }
+
+  SECTION("can be converted to a string") {
+    REQUIRE(std::string("#\\a") == a.toString());
+    REQUIRE(std::string("#\\b") == b.toString());
+    REQUIRE(std::string("#\\x") == x.toString());
+  }
+
+  SECTION("special characters are printed to spec") {
+    REQUIRE(std::string("#\\alarm") == Value{(char)0x07}.toString());
+    REQUIRE(std::string("#\\backspace") == Value{(char)0x08}.toString());
+    REQUIRE(std::string("#\\delete") == Value{(char)0x7F}.toString());
+    REQUIRE(std::string("#\\escape") == Value{(char)0x1B}.toString());
+    REQUIRE(std::string("#\\newline") == Value{(char)0x0A}.toString());
+    REQUIRE(std::string("#\\null") == Value{(char)0x00}.toString());
+    REQUIRE(std::string("#\\return") == Value{(char)0x0D}.toString());
+    REQUIRE(std::string("#\\space") == Value{(char)0x20}.toString());
+    REQUIRE(std::string("#\\tab") == Value{(char)0x09}.toString());
+  }
+
+  SECTION("can be converted to a char") {
+    REQUIRE('a' == a.toChar());
+    REQUIRE('b' == b.toChar());
+    REQUIRE('x' == x.toChar());
+  }
+
+  SECTION("support equality testing with other chars") {
+    REQUIRE(a == a);
+    REQUIRE(b == b);
+    REQUIRE_FALSE(a == b);
+  }
+
+  SECTION("support inequality testing with other chars") {
+    REQUIRE_FALSE(a != a);
+    REQUIRE_FALSE(x != x);
+    REQUIRE(x != a);
+  }
+
+  SECTION("are not equal to any other type") {
+    REQUIRE_FALSE(a == Value{});
+    REQUIRE_FALSE(b == Value{22});
+  }
+}

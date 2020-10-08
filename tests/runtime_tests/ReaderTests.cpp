@@ -47,3 +47,29 @@ TEST_CASE("Rejects invalid booleans", "[Reader]") {
   REQUIRE_THROWS_AS([]() { read("#F"); }(), ReaderException);
   REQUIRE_THROWS_AS([]() { read("#nope"); }(), ReaderException);
 }
+
+TEST_CASE("Can read chars", "[Reader]") {
+  REQUIRE(Value{'c'} == read("#\\c"));
+  REQUIRE(Value{'E'} == read("#\\E"));
+  REQUIRE(Value{'3'} == read("#\\3"));
+  REQUIRE(Value{'!'} == read("#\\!"));
+}
+
+TEST_CASE("Can read special characters", "[Reader]") {
+  REQUIRE(Value{(char)0x07} == read("#\\alarm"));
+  REQUIRE(Value{(char)0x08} == read("#\\backspace"));
+  REQUIRE(Value{(char)0x7F} == read("#\\delete"));
+  REQUIRE(Value{(char)0x1B} == read("#\\escape"));
+  REQUIRE(Value{(char)0x0A} == read("#\\newline"));
+  REQUIRE(Value{(char)0x00} == read("#\\null"));
+  REQUIRE(Value{(char)0x0D} == read("#\\return"));
+  REQUIRE(Value{(char)0x20} == read("#\\space"));
+  REQUIRE(Value{(char)0x09} == read("#\\tab"));
+}
+
+TEST_CASE("Rejects invalid chars", "[Reader]") {
+  REQUIRE_THROWS_AS([]() { read("#\\ca"); }(), ReaderException);
+  REQUIRE_THROWS_AS([]() { read("#\\alarms"); }(), ReaderException);
+  REQUIRE_THROWS_AS([]() { read("#\\"); }(), ReaderException);
+  REQUIRE_THROWS_AS([]() { read("#\\ "); }(), ReaderException);
+}

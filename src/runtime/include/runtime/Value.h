@@ -9,7 +9,7 @@
 
 namespace Shiny {
   /** Type of value stored in a Value instance. */
-  enum class ValueType { Null, Boolean, Fixnum };
+  enum class ValueType { Null, Boolean, Fixnum, Character };
 
   /** Fixnum type. */
   using fixnum_t = int;
@@ -29,6 +29,11 @@ namespace Shiny {
     explicit constexpr Value(fixnum_t fixnum) noexcept
         : type_(ValueType::Fixnum),
           fixnum_value(fixnum) {}
+
+    /** Character constructor. */
+    explicit constexpr Value(char c) noexcept
+        : type_(ValueType::Character),
+          char_value(c) {}
 
     /** Get the type for this value. */
     constexpr ValueType type() const noexcept { return type_; }
@@ -50,12 +55,29 @@ namespace Shiny {
       return type_ == ValueType::Fixnum;
     }
 
+    /** Test if value is of type character. */
+    constexpr bool isCharacter() const noexcept {
+      return type_ == ValueType::Character;
+    }
+
   public:
     /** Convert to fixnum integer value. Undefined behavior if not a fixnum. */
     constexpr fixnum_t toFixnum() const noexcept { return fixnum_value; }
 
     /** Convert to a boolean value. Undefined behavior if not a boolean. */
     constexpr bool toBool() const noexcept { return bool_value; }
+
+    /** Convert to a boolean value. Undefined behavior if not a boolean. */
+    constexpr char toChar() const noexcept { return char_value; }
+
+  public:
+    /** Test if value is false. */
+    constexpr bool isFalse() const noexcept {
+      return isBoolean() && !bool_value;
+    }
+
+    /** Test if value is true (Scheme true is any value that is not false). */
+    constexpr bool isTrue() const noexcept { return !isFalse(); }
 
   public:
     /** Value equality operator. */
@@ -70,6 +92,8 @@ namespace Shiny {
           return bool_value == rhs.bool_value;
         case ValueType::Fixnum:
           return fixnum_value == rhs.fixnum_value;
+        case ValueType::Character:
+          return char_value == rhs.char_value;
         default:
           assert(false && "Value == operator missing support type");
           return false;
@@ -87,9 +111,32 @@ namespace Shiny {
     union {
       fixnum_t fixnum_value;
       bool bool_value;
+      char char_value;
     };
   };
 
   std::ostream& operator<<(std::ostream& os, const Value& v);
+
+  /** Special character definitions. */
+  namespace SpecialChars {
+    const std::string kAlarmName = "alarm";
+    const char kAlarmValue = 7;
+    const std::string kBackspaceName = "backspace";
+    const char kBackspaceValue = 8;
+    const std::string kDeleteName = "delete";
+    const char kDeleteValue = 127;
+    const std::string kEscapeName = "escape";
+    const char kEscapeValue = 27;
+    const std::string kNewlineName = "newline";
+    const char kNewlineValue = 10; // 0x0a linefeed (\n).
+    const std::string kNullName = "null";
+    const char kNullValue = 0;
+    const std::string kReturnName = "return";
+    const char kReturnValue = 13; // 0x0d carriage return (\r).
+    const std::string kSpaceName = "space";
+    const char kSpaceValue = 32;
+    const std::string kTabName = "tab";
+    const char kTabValue = 9;
+  } // namespace SpecialChars
 
 } // namespace Shiny

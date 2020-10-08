@@ -3,7 +3,10 @@
 #include "runtime/Value.h"
 
 #include <fmt/format.h>
+
+#include <array>
 #include <string>
+#include <tuple>
 
 using namespace Shiny;
 
@@ -11,7 +14,7 @@ namespace {
   const char kLineCommentStartChar = ';';
 }
 
-//--------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 Value Reader::read(std::string_view buffer) {
   // TODO: Support floating point values.
 
@@ -21,7 +24,11 @@ Value Reader::read(std::string_view buffer) {
   // First character (or first few) determine what sort of lexeme we are going
   // to read.
   if (input.peekIsMatch(0, '#')) {
-    return readBoolean(input);
+    if (input.peekIsMatch(1, 't') || input.peekIsMatch(1, 'f')) {
+      return readBoolean(input);
+    } else {
+      return readCharacter(input);
+    }
   } else if (
       input.peekIsDigit(0) ||
       (input.peekIsMatch(0, '-') && input.peekIsDigit(1))) {
@@ -34,7 +41,7 @@ Value Reader::read(std::string_view buffer) {
   }
 }
 
-//--------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 Value Reader::readBoolean(CharacterStream& input) {
   auto lexemeStart = input.position();
 
@@ -77,7 +84,80 @@ Value Reader::readBoolean(CharacterStream& input) {
   return result;
 }
 
-//--------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+Value Reader::readCharacter(CharacterStream& input) {
+  auto lexemeStart = input.position();
+
+  // Consume the leading '#' character.
+  input.nextChar();
+
+  // Next character must be \ otherwise this is not a valid character.
+  if (!input.peekIsMatch(0, '\\')) {
+    input.nextChar();
+    throw ReaderException(
+        "Expected \\ to follow #",
+        lexemeStart,
+        input.position(),
+        EXCEPTION_CALLSITE_ARGS);
+  }
+
+  input.nextChar();
+
+  // Check for special characters next.
+  // TODO: Make this a table driven solution.
+  char c = 0;
+
+  if (consumeIfMatches(input, SpecialChars::kAlarmName)) {
+    c = SpecialChars::kAlarmValue;
+  } else if (consumeIfMatches(input, SpecialChars::kBackspaceName)) {
+    c = SpecialChars::kBackspaceValue;
+  } else if (consumeIfMatches(input, SpecialChars::kDeleteName)) {
+    c = SpecialChars::kDeleteValue;
+  } else if (consumeIfMatches(input, SpecialChars::kEscapeName)) {
+    c = SpecialChars::kEscapeValue;
+  } else if (consumeIfMatches(input, SpecialChars::kNewlineName)) {
+    c = SpecialChars::kNewlineValue;
+  } else if (consumeIfMatches(input, SpecialChars::kNullName)) {
+    c = SpecialChars::kNullValue;
+  } else if (consumeIfMatches(input, SpecialChars::kReturnName)) {
+    c = SpecialChars::kReturnValue;
+  } else if (consumeIfMatches(input, SpecialChars::kSpaceName)) {
+    c = SpecialChars::kSpaceValue;
+  } else if (consumeIfMatches(input, SpecialChars::kTabName)) {
+    c = SpecialChars::kTabValue;
+  } else {
+    // Default is just a regular single character value.
+    // Make sure there is a letter to read.
+    if (!input.hasNext()) {
+      throw ReaderException(
+          "Expected character letter but got end of file",
+          lexemeStart,
+          input.position(),
+          EXCEPTION_CALLSITE_ARGS);
+    }
+
+    c = input.nextChar();
+
+    // Check that this letter is printable.
+    if (!::isalnum(c) && !::ispunct(c)) {
+      throw ReaderException(
+          "Character must be letter, digit or punctation",
+          lexemeStart,
+          input.position(),
+          EXCEPTION_CALLSITE_ARGS);
+    }
+  }
+
+  // Characters must be followed by a delimiter.
+  if (!peekIsDelimOrEnd(input, 0)) {
+    throw ReaderExpectedDelimException(
+        input.position(), EXCEPTION_CALLSITE_ARGS);
+  }
+
+  return Value{c};
+}
+
+//------------------------------------------------------------------------------
 Value Reader::readFixnum(CharacterStream& input) {
   // Is this a negative number? Eat the leading negative sign if thats the
   // case.
@@ -109,7 +189,7 @@ Value Reader::readFixnum(CharacterStream& input) {
   return Value{static_cast<fixnum_t>(rawNumber)};
 }
 
-//--------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void Reader::skipWhitespace(CharacterStream& input) {
   size_t charSkipped = 0;
 
@@ -125,7 +205,7 @@ void Reader::skipWhitespace(CharacterStream& input) {
   } while (charSkipped > 0);
 }
 
-//--------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool Reader::peekIsDelim(const CharacterStream& input, size_t offset) {
   if (input.peekIsWhitespace(offset)) {
     char c;
@@ -141,10 +221,27 @@ bool Reader::peekIsDelim(const CharacterStream& input, size_t offset) {
   return false;
 }
 
-//--------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool Reader::peekIsDelimOrEnd(const CharacterStream& input, size_t offset) {
   if (input.tryPeekChar(offset, nullptr)) {
     return peekIsDelim(input, offset);
+  }
+
+  return true;
+}
+
+//------------------------------------------------------------------------------
+bool Reader::consumeIfMatches(CharacterStream& input, std::string_view needle) {
+  // If any character doesn't match then its false.
+  for (size_t i = 0; i < needle.size(); ++i) {
+    if (!input.peekIsMatch(i, needle[i])) {
+      return false;
+    }
+  }
+
+  // It matches! Advance the character stream to move past the needle.
+  for (size_t i = 0; i < needle.size(); ++i) {
+    input.nextChar();
   }
 
   return true;
