@@ -24,6 +24,16 @@ namespace Shiny {
 
     /** Allocate a block of memory of at least 'sizeInBytes'. */
     virtual void* allocate(size_t sizeInBytes) = 0;
+
+  public:
+    /**
+     * Aligns the allocation size to the machine word size.
+     * ex: if n = 6, then result is 8.
+     *     if n = 4, result is 4 on x86 and 8 on x64.
+     */
+    static constexpr size_t align(size_t n) {
+      return (n + sizeof(uintptr_t) - 1) & ~(sizeof(uintptr_t) - 1);
+    }
   };
 
   /** General allocator exception. */

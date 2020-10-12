@@ -1,9 +1,10 @@
 project(shiny-runtime)
 
 add_library(shiny-runtime
+    allocators/FreeListAllocator.cpp
+    allocators/MallocAllocator.cpp
     Allocator.cpp
     CharacterStream.cpp
-    FreeListAllocator.cpp
     Evaluator.cpp
     Exception.cpp
     Reader.cpp

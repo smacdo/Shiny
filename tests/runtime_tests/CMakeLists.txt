@@ -5,6 +5,7 @@ add_executable(test-shiny-runtime
     CharacterStreamTests.cpp
     FreeListAllocatorTests.cpp
     ExceptionTests.cpp
+    MallocAllocatorTests.cpp
     ReaderTests.cpp
     ValueTests.cpp
 )

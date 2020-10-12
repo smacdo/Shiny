@@ -5,7 +5,7 @@
 #include <string_view>
 
 namespace Shiny {
-  namespace FreeListImpl {
+  namespace MallocImpl {
     /**
      * An allocated block of memory. Contains a header that describes the
      * memory block followed by the memory payload.
@@ -14,25 +14,25 @@ namespace Shiny {
       /** Size of the user data portion of this block, in bytes. */
       size_t sizeInBytes;
 
-      /** True if this block is currently in use, false otherwise. */
-      bool isUsed;
-
-      /** Pointer to the next block in the list. */
+      /** Pointer to the next block in the allocation list. */
       Block* next;
+
+      /** Pointer to the previous block in the list. */
+      Block* prev;
 
       /** First byte of user data; remaining bytes follow immediately after. */
       uintptr_t data[1];
     };
-  } // namespace FreeListImpl
+  } // namespace MallocImpl
 
   /**
-   * Allocates and deallocates objects using the program break pointer.
+   * A simple memory allocator that uses malloc for allocation.
    */
-  class FreeListAllocator : public Allocator {
+  class MallocAllocator : public Allocator {
   public:
   public:
     /** Destructor. */
-    ~FreeListAllocator();
+    ~MallocAllocator();
 
     /** Allocate a block of memory of at least 'sizeInBytes'. */
     void* allocate(size_t sizeInBytes);
@@ -40,15 +40,12 @@ namespace Shiny {
     /** Free pointer allocated by this allocator. */
     void destroy(void* userPointer);
 
-    /** Reset heap (releases all memory allocated). */
-    void reset();
-
     /** Get the header for a memory block. */
-    const FreeListImpl::Block* getHeader(void* userPointer) const;
+    const MallocImpl::Block* getHeader(void* userPointer) const;
 
   private:
     /** Get the header for a memory block. */
-    FreeListImpl::Block* getHeader(void* userPointer);
+    MallocImpl::Block* getHeader(void* userPointer);
 
   public:
     /** Get the number of allocations performed by this allocator. */
@@ -57,21 +54,24 @@ namespace Shiny {
     /** Get the number of bytes requested to be allocated. */
     size_t requestedByteCount() const noexcept { return byteCount_; }
 
+    /**
+     * Set if the resetting the allocator should also free any still allocated
+     * blocks of memory.
+     */
+    void setFreeOnReset(bool shouldFree = true) { freeOnReset_ = shouldFree; }
+
   private:
+    /** Reset all allocations made by this allocator. */
+    void reset();
+
     /** Allocate a chunk of memory. */
-    FreeListImpl::Block* allocateBlock(size_t sizeInBytes);
-
-    /** Find a free block at least sizeInBytes large. */
-    FreeListImpl::Block* findFreeBlock(size_t sizeInBytes);
-
-    /** Find a free block at least sizeInBytes large. */
-    FreeListImpl::Block* findFirstFreeFitBlock(size_t sizeInBytes);
+    MallocImpl::Block* allocateBlock(size_t sizeInBytes);
 
     /** Release all allocations. */
     void freeHeap();
 
     /** Release single block. */
-    void freeBlock(FreeListImpl::Block* block);
+    void freeBlock(MallocImpl::Block* block);
 
     /**
      * Get the total allocation size (in bytes) including the additional space
@@ -80,13 +80,12 @@ namespace Shiny {
     static size_t getAllocationSizeInBytes(size_t userSizeInBytes);
 
   private:
-    FreeListImpl::Block* heapRoot_ = nullptr;
-    FreeListImpl::Block* heapBack_ = nullptr;
-    FreeListImpl::Block* findStart_ = nullptr;
+    MallocImpl::Block* heapRoot_ = nullptr;
+    MallocImpl::Block* heapBack_ = nullptr;
     size_t blockCount_ = 0;
     size_t byteCount_ = 0;
     size_t actualByteCount_ = 0;
-    bool clearAfterFree_ = true;
-    bool freeBeforeReset_ = true;
+    bool freeOnReset_ = true;
+    bool clearOnFree_ = true;
   };
 } // namespace Shiny

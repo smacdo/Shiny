@@ -9,18 +9,6 @@
 using namespace Shiny;
 using namespace Shiny::FreeListImpl;
 
-namespace {
-  /**
-   * Aligns the allocation size to the machine word size.
-   * ex: if n = 6, then result is 8.
-   *     if n = 4, result is 4 on x86 and 8 on x64.
-   */
-  constexpr size_t align(size_t n) {
-    return (n + sizeof(uintptr_t) - 1) & ~(sizeof(uintptr_t) - 1);
-  }
-
-} // namespace
-
 //------------------------------------------------------------------------------
 FreeListAllocator::~FreeListAllocator() { reset(); }
 
@@ -72,7 +60,7 @@ Block* FreeListAllocator::allocateBlock(size_t sizeInBytes) {
 
   // Bump the heap break by the number of bytes required for this allocation,
   // and check for a failed allocation after doing this.
-  auto actualSizeInBytes = getAllocationSizeInByes(sizeInBytes);
+  auto actualSizeInBytes = getAllocationSizeInBytes(sizeInBytes);
 
   if (sbrk(actualSizeInBytes) == reinterpret_cast<void*>(-1)) {
     throw OutOfMemoryException(
@@ -224,7 +212,7 @@ Block* FreeListAllocator::getHeader(void* userPointer) {
 }
 
 //------------------------------------------------------------------------------
-size_t FreeListAllocator::getAllocationSizeInByes(size_t userSizeInBytes) {
+size_t FreeListAllocator::getAllocationSizeInBytes(size_t userSizeInBytes) {
   // Since the block structure includes the first word of user data (C++
   // doesn't allow zero sized arrays), we subtract it from the size request.
   return userSizeInBytes + sizeof(Block) - sizeof(std::declval<Block>().data);
