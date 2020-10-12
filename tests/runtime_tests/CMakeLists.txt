@@ -3,6 +3,7 @@ project(test-shiny-runtime)
 add_executable(test-shiny-runtime
     TestMain.cpp
     CharacterStreamTests.cpp
+    FreeListAllocatorTests.cpp
     ExceptionTests.cpp
     ReaderTests.cpp
     ValueTests.cpp
@@ -24,6 +25,9 @@ target_link_libraries(test-shiny-runtime
         shiny-runtime
         spdlog
 )
+
+#target_use_clang_tidy(test-shiny-runtime)
+target_use_sanitizers(test-shiny-runtime)
 
 if(MSVC)
   target_compile_options(test-shiny-runtime

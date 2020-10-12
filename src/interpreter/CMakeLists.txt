@@ -8,6 +8,9 @@ target_link_libraries(shiny-interpreter
         shiny-runtime
 )
 
+#target_use_clang_tidy(shiny-interpreter)
+target_use_sanitizers(shiny-interpreter)
+
 if(MSVC)
   target_compile_options(shiny-interpreter
     PRIVATE

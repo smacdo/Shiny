@@ -1,7 +1,9 @@
 project(shiny-runtime)
 
 add_library(shiny-runtime
+    Allocator.cpp
     CharacterStream.cpp
+    FreeListAllocator.cpp
     Evaluator.cpp
     Exception.cpp
     Reader.cpp
@@ -24,6 +26,10 @@ target_link_libraries(shiny-runtime
         spdlog
 )
 
+#target_use_clang_tidy(shiny-runtime)
+target_use_sanitizers(shiny-runtime)
+
+# TODO: Move to a function.
 if(MSVC)
   target_compile_options(shiny-runtime
     PRIVATE
@@ -33,3 +39,4 @@ else()
     PRIVATE
         -Wall -Wextra -pedantic -Werror)
 endif()
+
