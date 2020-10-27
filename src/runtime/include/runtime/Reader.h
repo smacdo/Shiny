@@ -21,6 +21,7 @@ namespace Shiny {
     Shiny::Value read(std::string_view input);
 
   private:
+    Value readPair(CharacterStream& input);
     Value readFixnum(CharacterStream& input);
     Value readBoolean(CharacterStream& input);
     Value readCharacter(CharacterStream& input);

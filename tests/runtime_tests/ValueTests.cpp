@@ -7,30 +7,32 @@
 
 using namespace Shiny;
 
-TEST_CASE("Null", "[Value]") {
-  const Value n;
+TEST_CASE("Empty List", "[Value]") {
+  const Value empty; // Default constructor constructs empty list.
 
-  SECTION("is always of type null") { REQUIRE(ValueType::Null == n.type()); }
-
-  SECTION("can be converted to a string") {
-    REQUIRE(std::string("()") == n.toString());
+  SECTION("is always of type EmptyList") {
+    REQUIRE(ValueType::EmptyList == empty.type());
   }
 
-  SECTION("support equality testing with other nulls") {
-    Value n2{n};
+  SECTION("can be printed") { REQUIRE(std::string("()") == empty.toString()); }
 
-    REQUIRE(n == n);
-    REQUIRE(n2 == n);
+  SECTION("is only equal to another empty list") {
+    Value secondEmpty{};
+    Value emptyCopy{empty};
+    Value notEmpty{0};
+
+    REQUIRE(empty == empty);
+    REQUIRE_FALSE(empty != empty);
+
+    REQUIRE(secondEmpty == empty);
+    REQUIRE_FALSE(secondEmpty != empty);
+
+    REQUIRE(emptyCopy == empty);
+    REQUIRE_FALSE(emptyCopy != empty);
+
+    REQUIRE_FALSE(notEmpty == empty);
+    REQUIRE(notEmpty != empty);
   }
-
-  SECTION("support inequality testing with other nulls") {
-    Value n2{n};
-
-    REQUIRE_FALSE(n != n);
-    REQUIRE_FALSE(n2 != n);
-  }
-
-  SECTION("are not equal to any other type") {}
 }
 
 TEST_CASE("Fixnum value", "[Value]") {
@@ -45,7 +47,7 @@ TEST_CASE("Fixnum value", "[Value]") {
     REQUIRE(ValueType::Fixnum == b.type());
   }
 
-  SECTION("can be converted to a string") {
+  SECTION("can be printed") {
     REQUIRE(std::string("0") == zero.toString());
     REQUIRE(std::string("22") == a.toString());
     REQUIRE(std::string("-5") == b.toString());
@@ -92,7 +94,7 @@ TEST_CASE("Boolean values", "[Value]") {
     REQUIRE(ValueType::Boolean == f.type());
   }
 
-  SECTION("can be converted to a string") {
+  SECTION("can be printed") {
     REQUIRE(std::string("#t") == t.toString());
     REQUIRE(std::string("#f") == f.toString());
   }
@@ -131,7 +133,7 @@ TEST_CASE("Character values", "[Value]") {
     REQUIRE(ValueType::Character == x.type());
   }
 
-  SECTION("can be converted to a string") {
+  SECTION("can be printed") {
     REQUIRE(std::string("#\\a") == a.toString());
     REQUIRE(std::string("#\\b") == b.toString());
     REQUIRE(std::string("#\\x") == x.toString());
@@ -186,13 +188,13 @@ TEST_CASE("String values", "[Value]") {
     REQUIRE(ValueType::String == foobar.type());
   }
 
-  SECTION("can be converted to a string") {
+  SECTION("can be printed") {
     REQUIRE(std::string("\"a\"") == a.toString());
     REQUIRE(std::string("\"foo\"") == foo.toString());
     REQUIRE(std::string("\"foobar\"") == foobar.toString());
   }
 
-  SECTION("can be converted to a string_view") {
+  SECTION("can be printed_view") {
     REQUIRE(std::string_view{"a"} == a.toStringView());
     REQUIRE(std::string_view{"foo"} == foo.toStringView());
     REQUIRE(std::string_view{"foobar"} == foobar.toStringView());

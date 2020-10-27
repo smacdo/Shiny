@@ -13,7 +13,7 @@ namespace Shiny {
   struct RawString;
 
   /** Type of value stored in a Value instance. */
-  enum class ValueType { Null, Boolean, Fixnum, Character, String };
+  enum class ValueType { EmptyList, Boolean, Fixnum, Character, String };
 
   /** Fixnum type. */
   using fixnum_t = int;
@@ -21,8 +21,8 @@ namespace Shiny {
   /** A dynamically typed value. */
   class Value {
   public:
-    /** Default constructor creates a null value. */
-    constexpr Value() noexcept : type_(ValueType::Null), fixnum_value(0) {}
+    /** Default constructor creates an empty list value. */
+    constexpr Value() noexcept : type_(ValueType::EmptyList), fixnum_value(0) {}
 
     /** Bool constructor. */
     explicit constexpr Value(bool value) noexcept
@@ -51,8 +51,10 @@ namespace Shiny {
     std::string toString() const;
 
   public:
-    /** Test if value is of type null. */
-    constexpr bool isNull() const noexcept { return type_ == ValueType::Null; }
+    /** Test if value is of type empty list. */
+    constexpr bool isEmptyList() const noexcept {
+      return type_ == ValueType::EmptyList;
+    }
 
     /** Test if value is of type boolean. */
     constexpr bool isBoolean() const noexcept {
@@ -106,7 +108,7 @@ namespace Shiny {
         return false;
       } else {
         switch (type_) {
-        case ValueType::Null:
+        case ValueType::EmptyList:
           return true;
         case ValueType::Boolean:
           return bool_value == rhs.bool_value;
@@ -127,7 +129,7 @@ namespace Shiny {
     bool operator!=(const Value& rhs) const noexcept { return !(*this == rhs); }
 
   private:
-    ValueType type_ = ValueType::Null;
+    ValueType type_ = ValueType::EmptyList;
     union {
       fixnum_t fixnum_value;
       bool bool_value;

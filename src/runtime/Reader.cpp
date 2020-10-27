@@ -46,6 +46,8 @@ Value Reader::read(std::string_view buffer) {
     // This is a string as the first character is ". Add all following
     // characters to the string until we finding a terminating quote.
     return readString(input);
+  } else if (input.peekIsMatch(0, '(')) { // TODO: readIfMatch('(')
+    return readPair(input);
   } else if (
       input.peekIsDigit(0) ||
       (input.peekIsMatch(0, '-') && input.peekIsDigit(1))) {
@@ -57,6 +59,25 @@ Value Reader::read(std::string_view buffer) {
     // TODO: this breaks badly for an empty/whitespace string. Fix!!
     throw ReaderUnexpectedCharException(
         input.position(), EXCEPTION_CALLSITE_ARGS);
+  }
+}
+
+//------------------------------------------------------------------------------
+Value Reader::readPair(CharacterStream& input) {
+  auto lexemeStart = input.position();
+
+  input.nextChar(); // TODO: readIfMatch('(')
+  skipWhitespace(input);
+
+  // TODO: read all pairs not just empty pair.
+  if (input.peekIsMatch(0, ')')) {
+    return vmState_->globals().emptyList;
+  } else {
+    throw ReaderException(
+        "Did not read expected closing parentheses",
+        lexemeStart,
+        input.position(),
+        EXCEPTION_CALLSITE_ARGS);
   }
 }
 
@@ -80,10 +101,10 @@ Value Reader::readBoolean(CharacterStream& input) {
 
   switch (input.nextChar()) {
   case 't':
-    result = Value{true};
+    result = vmState_->globals().bTrue;
     break;
   case 'f':
-    result = Value{false};
+    result = vmState_->globals().bFalse;
     break;
   default:
     throw ReaderException(

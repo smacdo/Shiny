@@ -92,7 +92,7 @@ std::string Value::toString() const {
 //--------------------------------------------------------------------------------------------------
 std::ostream& Value::print(std::ostream& os, const Value& v) {
   switch (v.type()) {
-  case ValueType::Null:
+  case ValueType::EmptyList:
     os << "()";
     break;
   case ValueType::Boolean:

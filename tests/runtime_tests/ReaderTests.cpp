@@ -108,3 +108,11 @@ TEST_CASE("Can read strings", "[Reader]") {
         "\"hello\\nworld\"" == read("\"hello\\nworld\"", vmState).toString());
   }
 }
+
+TEST_CASE("Can read empty list", "[Reader]") {
+  auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
+
+  REQUIRE(vmState->globals().emptyList == read("()", vmState));
+  REQUIRE(vmState->globals().emptyList == read("(  )", vmState));
+  REQUIRE(vmState->globals().emptyList == read("(\n)", vmState));
+}

@@ -12,6 +12,7 @@ namespace Shiny {
     struct Globals {
       Value bTrue{true};
       Value bFalse{false};
+      Value emptyList;
     };
 
   public:
