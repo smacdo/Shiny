@@ -1,4 +1,8 @@
 #include "runtime/Value.h"
+
+#include "runtime/RawString.h"
+#include "runtime/allocators/MallocAllocator.h"
+
 #include <catch2/catch.hpp>
 
 using namespace Shiny;
@@ -166,5 +170,58 @@ TEST_CASE("Character values", "[Value]") {
   SECTION("are not equal to any other type") {
     REQUIRE_FALSE(a == Value{});
     REQUIRE_FALSE(b == Value{22});
+  }
+}
+
+TEST_CASE("String values", "[Value]") {
+  MallocAllocator alloc;
+
+  const Value a{create_string(&alloc, "a")};
+  Value foo{create_string(&alloc, "foo")};
+  Value foobar{create_string(&alloc, "foobar")};
+
+  SECTION("are always of type string") {
+    REQUIRE(ValueType::String == a.type());
+    REQUIRE(ValueType::String == foo.type());
+    REQUIRE(ValueType::String == foobar.type());
+  }
+
+  SECTION("can be converted to a string") {
+    REQUIRE(std::string("\"a\"") == a.toString());
+    REQUIRE(std::string("\"foo\"") == foo.toString());
+    REQUIRE(std::string("\"foobar\"") == foobar.toString());
+  }
+
+  SECTION("can be converted to a string_view") {
+    REQUIRE(std::string_view{"a"} == a.toStringView());
+    REQUIRE(std::string_view{"foo"} == foo.toStringView());
+    REQUIRE(std::string_view{"foobar"} == foobar.toStringView());
+  }
+
+  SECTION("are only equal to strings of the same instance") {
+    REQUIRE(foo == foo);
+
+    const Value foo2{create_string(&alloc, foo.toStringView())};
+    REQUIRE_FALSE(foo == foo2);
+    REQUIRE_FALSE(foo2 == foo);
+
+    REQUIRE_FALSE(a == foo);
+    REQUIRE_FALSE(a == foobar);
+  }
+
+  SECTION("support inequality testing with other strings") {
+    REQUIRE_FALSE(foo != foo);
+
+    const Value foo2{create_string(&alloc, foo.toStringView())};
+    REQUIRE(foo != foo2);
+    REQUIRE(foo2 != foo);
+
+    REQUIRE(a != foo);
+    REQUIRE(a != foobar);
+  }
+
+  SECTION("are not equal to any other type") {
+    REQUIRE_FALSE(a == Value{});
+    REQUIRE_FALSE(a == Value{22});
   }
 }

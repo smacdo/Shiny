@@ -60,7 +60,8 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp",
-        "bit": "cpp"
+        "bit": "cpp",
+        "cassert": "cpp"
     },
     "editor.minimap.maxColumn": 1,
     "C_Cpp.clang_format_fallbackStyle": "LLVM",

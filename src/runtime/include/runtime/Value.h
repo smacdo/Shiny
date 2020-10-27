@@ -6,10 +6,14 @@
 #include <iosfwd>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 namespace Shiny {
+  class Allocator;
+  struct RawString;
+
   /** Type of value stored in a Value instance. */
-  enum class ValueType { Null, Boolean, Fixnum, Character };
+  enum class ValueType { Null, Boolean, Fixnum, Character, String };
 
   /** Fixnum type. */
   using fixnum_t = int;
@@ -34,6 +38,11 @@ namespace Shiny {
     explicit constexpr Value(char c) noexcept
         : type_(ValueType::Character),
           char_value(c) {}
+
+    /** String constructor. */
+    explicit Value(RawString* rawString) noexcept
+        : type_(ValueType::String),
+          string_ptr(rawString) {}
 
     /** Get the type for this value. */
     constexpr ValueType type() const noexcept { return type_; }
@@ -60,6 +69,11 @@ namespace Shiny {
       return type_ == ValueType::Character;
     }
 
+    /** Test if value is of type string. */
+    constexpr bool isString() const noexcept {
+      return type_ == ValueType::String;
+    }
+
   public:
     /** Convert to fixnum integer value. Undefined behavior if not a fixnum. */
     constexpr fixnum_t toFixnum() const noexcept { return fixnum_value; }
@@ -69,6 +83,9 @@ namespace Shiny {
 
     /** Convert to a boolean value. Undefined behavior if not a boolean. */
     constexpr char toChar() const noexcept { return char_value; }
+
+    /** Convert to a string_view. Undefined behavior if not a string. */
+    std::string_view toStringView() const;
 
   public:
     /** Test if value is false. */
@@ -80,8 +97,11 @@ namespace Shiny {
     constexpr bool isTrue() const noexcept { return !isFalse(); }
 
   public:
+    static std::ostream& print(std::ostream& os, const Value& v);
+
+  public:
     /** Value equality operator. */
-    constexpr bool operator==(const Value& rhs) const noexcept {
+    bool operator==(const Value& rhs) const noexcept {
       if (type_ != rhs.type_) {
         return false;
       } else {
@@ -94,6 +114,8 @@ namespace Shiny {
           return fixnum_value == rhs.fixnum_value;
         case ValueType::Character:
           return char_value == rhs.char_value;
+        case ValueType::String:
+          return string_ptr == rhs.string_ptr;
         default:
           assert(false && "Value == operator missing support type");
           return false;
@@ -102,9 +124,7 @@ namespace Shiny {
     }
 
     /** Inequality operator. */
-    constexpr bool operator!=(const Value& rhs) const noexcept {
-      return !(*this == rhs);
-    }
+    bool operator!=(const Value& rhs) const noexcept { return !(*this == rhs); }
 
   private:
     ValueType type_ = ValueType::Null;
@@ -112,6 +132,7 @@ namespace Shiny {
       fixnum_t fixnum_value;
       bool bool_value;
       char char_value;
+      RawString* string_ptr;
     };
   };
 

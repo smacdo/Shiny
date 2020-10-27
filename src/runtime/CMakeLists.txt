@@ -7,8 +7,10 @@ add_library(shiny-runtime
     CharacterStream.cpp
     Evaluator.cpp
     Exception.cpp
+    RawString.cpp
     Reader.cpp
     Value.cpp
+    VmState.cpp
 )
 
 target_compile_features(shiny-runtime

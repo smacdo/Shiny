@@ -1,10 +1,14 @@
 #include "runtime/Reader.h"
+
 #include "runtime/CharacterStream.h"
 #include "runtime/Value.h"
+#include "runtime/VmState.h"
 
 #include <fmt/format.h>
+#include <iostream> // temp
 
 #include <array>
+#include <cassert>
 #include <string>
 #include <tuple>
 
@@ -12,6 +16,13 @@ using namespace Shiny;
 
 namespace {
   const char kLineCommentStartChar = ';';
+  const size_t kDefaultTextBufferSize = 256;
+} // namespace
+
+//------------------------------------------------------------------------------
+Reader::Reader(std::shared_ptr<VmState> vmState) : vmState_(vmState) {
+  assert(vmState_ != nullptr);
+  textBuffer_.reserve(kDefaultTextBufferSize);
 }
 
 //------------------------------------------------------------------------------
@@ -24,14 +35,22 @@ Value Reader::read(std::string_view buffer) {
   // First character (or first few) determine what sort of lexeme we are going
   // to read.
   if (input.peekIsMatch(0, '#')) {
+    // First character is #. Read another character to determine if this is a
+    // boolean (#t or #f), or a character (#\).
     if (input.peekIsMatch(1, 't') || input.peekIsMatch(1, 'f')) {
       return readBoolean(input);
     } else {
       return readCharacter(input);
     }
+  } else if (input.peekIsMatch(0, '"')) {
+    // This is a string as the first character is ". Add all following
+    // characters to the string until we finding a terminating quote.
+    return readString(input);
   } else if (
       input.peekIsDigit(0) ||
       (input.peekIsMatch(0, '-') && input.peekIsDigit(1))) {
+    // This is a number because the first character is either a digit or starts
+    // with a negative sign.
     return readFixnum(input);
   } else {
     // oops i didn't recogonize this!
@@ -93,7 +112,7 @@ Value Reader::readCharacter(CharacterStream& input) {
 
   // Next character must be \ otherwise this is not a valid character.
   if (!input.peekIsMatch(0, '\\')) {
-    input.nextChar();
+    input.nextChar(); // TODO: peek + next => consumeIfMatches
     throw ReaderException(
         "Expected \\ to follow #",
         lexemeStart,
@@ -155,6 +174,77 @@ Value Reader::readCharacter(CharacterStream& input) {
   }
 
   return Value{c};
+}
+
+//------------------------------------------------------------------------------
+Value Reader::readString(CharacterStream& input) {
+  textBuffer_.clear();
+
+  // Consume the leading quote.
+  auto lexemeStart = input.position();
+  input.nextChar();
+
+  // Read characters into the temporary text buffer until a terminating double
+  // quote is found.
+  while (input.hasNext() && !input.peekIsMatch(0, '"')) {
+    // If this is an escaped quote move past it otherwise keep scanning for the
+    // terminating double quote.
+    // TODO: Handle escaped characters.
+    // TODO: Handle edge case of \ followed by EOF.
+    if (input.peekIsMatch(0, '\\')) {
+      input.nextChar(); // Discard \ .
+
+      // Make sure there is a valid character following the start of the escape
+      // sequence.
+      if (!input.hasNext()) {
+        throw ReaderException(
+            "Unexpected end of stream when parsing escape sequence",
+            lexemeStart,
+            input.position(),
+            EXCEPTION_CALLSITE_ARGS);
+      }
+
+      // Handle the escaped character or throw an exception if it isn't
+      // supported.
+      char n = input.nextChar();
+
+      switch (n) {
+      case '\\':
+        textBuffer_.push_back('\\');
+        break;
+      case '"':
+        textBuffer_.push_back('"');
+        break;
+      case 'n':
+        textBuffer_.push_back('\n');
+        break;
+      default:
+        throw ReaderException(
+            "Unknown escape sequence",
+            lexemeStart,
+            input.position(),
+            EXCEPTION_CALLSITE_ARGS);
+      }
+    } else {
+      // Normal, non-escaped character.
+      textBuffer_.push_back(input.nextChar());
+    }
+  }
+
+  // Verify the string is terminated by a double quote.
+  if (!input.peekIsMatch(0, '"')) {
+    if (input.hasNext()) {
+      input.nextChar();
+    }
+
+    throw ReaderException(
+        "Terminating double quote missing at end of string",
+        lexemeStart,
+        input.position(),
+        EXCEPTION_CALLSITE_ARGS);
+  }
+
+  return Value{vmState_->makeString(textBuffer_)};
 }
 
 //------------------------------------------------------------------------------

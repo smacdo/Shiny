@@ -1,7 +1,6 @@
 #pragma once
 #include "runtime/Exception.h"
-#include "runtime/Value.h"
-#include <string_view>
+#include <string>
 
 namespace Shiny {
   /** Allocates Shiny objects. */
@@ -22,8 +21,15 @@ namespace Shiny {
       return new (rawptr) T(std::forward<U>(args)...);
     }
 
-    /** Allocate a block of memory of at least 'sizeInBytes'. */
+    /**
+     * Allocate a block of memory of at least 'sizeInBytes'.
+     * This will always throw an exception when allocation fails, and will
+     * never return a null pointer.
+     */
     virtual void* allocate(size_t sizeInBytes) = 0;
+
+    /** Free pointer allocated by this allocator. */
+    virtual void destroy(void* userPointer) = 0;
 
   public:
     /**

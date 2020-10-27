@@ -2,7 +2,6 @@
 #include "runtime/Allocator.h"
 
 #include <cstdint>
-#include <string_view>
 
 namespace Shiny {
   namespace FreeListImpl {
@@ -35,10 +34,10 @@ namespace Shiny {
     ~FreeListAllocator();
 
     /** Allocate a block of memory of at least 'sizeInBytes'. */
-    void* allocate(size_t sizeInBytes);
+    void* allocate(size_t sizeInBytes) override;
 
     /** Free pointer allocated by this allocator. */
-    void destroy(void* userPointer);
+    void destroy(void* userPointer) override;
 
     /** Reset heap (releases all memory allocated). */
     void reset();

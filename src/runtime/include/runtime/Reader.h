@@ -2,13 +2,21 @@
 #include "runtime/CharacterStream.h"
 #include "runtime/Exception.h"
 #include "runtime/Value.h"
+
+#include <memory>
+#include <string>
 #include <string_view>
 
 namespace Shiny {
+  class VmState;
+
   /** Reads s-expressions an
    * d converts to abstract syntax tree. */
   class Reader {
   public:
+    /** Constructor. */
+    Reader(std::shared_ptr<VmState> vmState);
+
     /** Convert s-expression input to abstract syntax tree. */
     Shiny::Value read(std::string_view input);
 
@@ -16,6 +24,7 @@ namespace Shiny {
     Value readFixnum(CharacterStream& input);
     Value readBoolean(CharacterStream& input);
     Value readCharacter(CharacterStream& input);
+    Value readString(CharacterStream& input);
 
     /** Advance past whitespace including comments. */
     static void skipWhitespace(CharacterStream& input);
@@ -31,6 +40,8 @@ namespace Shiny {
     consumeIfMatches(CharacterStream& input, std::string_view needle);
 
   private:
+    std::shared_ptr<VmState> vmState_;
+    std::string textBuffer_;
   };
 
   /**

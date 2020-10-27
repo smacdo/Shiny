@@ -24,6 +24,9 @@ TEST_CASE("Can allocate blocks of memory 2", "[MallocAllocator]") {
   REQUIRE(a1 != a2);
   REQUIRE(2 == alloc.allocationCount());
   REQUIRE(7 == alloc.requestedByteCount());
+
+  alloc.destroy(a2);
+  alloc.destroy(a1);
 }
 
 TEST_CASE("Can destroy allocation", "[MallocAllocator]") {
@@ -35,37 +38,3 @@ TEST_CASE("Can destroy allocation", "[MallocAllocator]") {
   alloc.destroy(a1);
   alloc.destroy(a2);
 }
-
-#if _WIN64 || __x86_64__ || __ppc64__
-TEST_CASE("Platform specific alignment (x64) 2", "[MallocAllocator]") {
-  MallocTestableAllocator alloc;
-  const MallocTestableAllocator& ca = alloc;
-
-  REQUIRE(8 == ca.getHeader(alloc.allocate(0))->sizeInBytes);
-  REQUIRE(8 == ca.getHeader(alloc.allocate(1))->sizeInBytes);
-  REQUIRE(8 == ca.getHeader(alloc.allocate(2))->sizeInBytes);
-  REQUIRE(8 == ca.getHeader(alloc.allocate(3))->sizeInBytes);
-  REQUIRE(8 == ca.getHeader(alloc.allocate(4))->sizeInBytes);
-  REQUIRE(8 == ca.getHeader(alloc.allocate(5))->sizeInBytes);
-  REQUIRE(8 == ca.getHeader(alloc.allocate(8))->sizeInBytes);
-  REQUIRE(16 == ca.getHeader(alloc.allocate(12))->sizeInBytes);
-  REQUIRE(16 == ca.getHeader(alloc.allocate(13))->sizeInBytes);
-  REQUIRE(16 == ca.getHeader(alloc.allocate(16))->sizeInBytes);
-}
-#else
-TEST_CASE("Platform specific alignment (x86) 2", "[MallocAllocator]") {
-  MallocTestableAllocator alloc;
-  const MallocTestableAllocator& ca = alloc;
-
-  REQUIRE(4 == ca.getHeader(alloc.allocate(0))->sizeInBytes);
-  REQUIRE(4 == ca.getHeader(alloc.allocate(1))->sizeInBytes);
-  REQUIRE(4 == ca.getHeader(alloc.allocate(2))->sizeInBytes);
-  REQUIRE(4 == ca.getHeader(alloc.allocate(3))->sizeInBytes);
-  REQUIRE(8 == ca.getHeader(alloc.allocate(4))->sizeInBytes);
-  REQUIRE(8 == ca.getHeader(alloc.allocate(5))->sizeInBytes);
-  REQUIRE(8 == ca.getHeader(alloc.allocate(8))->sizeInBytes);
-  REQUIRE(12 == ca.getHeader(alloc.allocate(12))->sizeInBytes);
-  REQUIRE(16 == ca.getHeader(alloc.allocate(13))->sizeInBytes);
-  REQUIRE(16 == ca.getHeader(alloc.allocate(16))->sizeInBytes);
-}
-#endif

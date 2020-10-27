@@ -3,6 +3,8 @@
 #include "runtime/Evaluator.h"
 #include "runtime/Reader.h"
 #include "runtime/Value.h"
+#include "runtime/VmState.h"
+#include "runtime/allocators/MallocAllocator.h"
 
 #include <iostream>
 #include <string>
@@ -25,10 +27,13 @@ void InteractiveSession::Run() {
 //--------------------------------------------------------------------------------------------------
 void InteractiveSession::MainLoop() {
   // Interpreter initialize.
+  auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
   Evaluator evaluator;
 
+  std::string line;
+
   while (true) {
-    Reader reader;
+    Reader reader{vmState};
     auto result = evaluator.Evaluate(reader.read(GetUserInput()));
     std::cout << result << std::endl; // TODO: use stream operator.
   }
@@ -39,14 +44,15 @@ std::string InteractiveSession::GetUserInput() const {
   std::string input;
 
   std::cout << "> ";
-  std::cin >> input;
+  std::getline(std::cin, input);
 
   return input;
 }
 
 //--------------------------------------------------------------------------------------------------
 void InteractiveSession::OnStart() {
-  std::cout << "Welcome to Shiny, a simple scheme inspired language. Use ctrl+c to exit."
+  std::cout << "Welcome to Shiny, a simple scheme inspired language. Use "
+               "ctrl+c to exit."
             << std::endl;
 }
 

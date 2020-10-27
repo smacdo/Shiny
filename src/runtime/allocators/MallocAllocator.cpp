@@ -1,5 +1,4 @@
 #include "runtime/allocators/MallocAllocator.h"
-#include "runtime/Value.h"
 
 #include <fmt/format.h>
 
@@ -85,7 +84,9 @@ void MallocAllocator::destroy(void* userPointer) {
 void MallocAllocator::reset() {
   // Make sure any still alive allocations are freed.
   // TODO: Log warnings for allocations that are found here.
-  freeHeap();
+  if (freeOnReset_) {
+    freeHeap();
+  }
 
   // Reset state to initial.
   heapRoot_ = nullptr;

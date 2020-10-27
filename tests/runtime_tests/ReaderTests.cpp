@@ -1,12 +1,22 @@
 #include "runtime/Reader.h"
+
+#include "runtime/VmState.h"
+#include "runtime/allocators/MallocAllocator.h"
+
 #include <catch2/catch.hpp>
 
 using namespace Shiny;
 
 namespace {
-  Value read(std::string_view input) {
-    Reader r;
+  Value read(std::string_view input, std::shared_ptr<VmState> vmState) {
+    Reader r{vmState};
     return r.read(input);
+  }
+
+  Value read(std::string_view input) {
+    auto vmState =
+        std::make_shared<VmState>(std::make_unique<MallocAllocator>());
+    return read(input, vmState);
   }
 } // namespace
 
@@ -72,4 +82,29 @@ TEST_CASE("Rejects invalid chars", "[Reader]") {
   REQUIRE_THROWS_AS([]() { read("#\\alarms"); }(), ReaderException);
   REQUIRE_THROWS_AS([]() { read("#\\"); }(), ReaderException);
   REQUIRE_THROWS_AS([]() { read("#\\ "); }(), ReaderException);
+}
+
+TEST_CASE("Can read strings", "[Reader]") {
+  auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
+
+  SECTION("one line string") {
+    REQUIRE("\"hello world\"" == read("\"hello world\"", vmState).toString());
+  }
+
+  SECTION("forward slash is escaped") {
+    REQUIRE("\"1 \\\\ 2\"" == read("\"1 \\\\ 2\"", vmState).toString());
+  }
+
+  SECTION("escaped quotes") {
+    REQUIRE("\"hello world\"" == read("\"hello world\"", vmState).toString());
+    REQUIRE(
+        "\"The word \\\"recursion\\\" has many meanings.\"" ==
+        read("\"The word \\\"recursion\\\" has many meanings.\"", vmState)
+            .toString());
+  }
+
+  SECTION("newline escaped") {
+    REQUIRE(
+        "\"hello\\nworld\"" == read("\"hello\\nworld\"", vmState).toString());
+  }
 }
