@@ -5,7 +5,6 @@
 #include "runtime/VmState.h"
 
 #include <fmt/format.h>
-#include <iostream> // temp
 
 #include <array>
 #include <cassert>
@@ -27,9 +26,13 @@ Reader::Reader(std::shared_ptr<VmState> vmState) : vmState_(vmState) {
 
 //------------------------------------------------------------------------------
 Value Reader::read(std::string_view buffer) {
-  // TODO: Support floating point values.
-
   CharacterStream input{buffer};
+  return read(input);
+}
+
+//------------------------------------------------------------------------------
+Value Reader::read(CharacterStream& input) {
+  // TODO: Support floating point values.
   skipWhitespace(input);
 
   // First character (or first few) determine what sort of lexeme we are going
@@ -47,6 +50,7 @@ Value Reader::read(std::string_view buffer) {
     // characters to the string until we finding a terminating quote.
     return readString(input);
   } else if (input.peekIsMatch(0, '(')) { // TODO: readIfMatch('(')
+    input.nextChar();                     // TODO: readIfMatch('(')
     return readPair(input);
   } else if (
       input.peekIsDigit(0) ||
@@ -65,19 +69,58 @@ Value Reader::read(std::string_view buffer) {
 //------------------------------------------------------------------------------
 Value Reader::readPair(CharacterStream& input) {
   auto lexemeStart = input.position();
-
-  input.nextChar(); // TODO: readIfMatch('(')
   skipWhitespace(input);
 
-  // TODO: read all pairs not just empty pair.
+  // Closing paren can be interpreted as the empty list in our mutually
+  // recursive reader.
   if (input.peekIsMatch(0, ')')) {
     return vmState_->globals().emptyList;
+  }
+
+  // Read the left side of the pair (car).
+  auto car = read(input);
+
+  // Check for dotted pair syntax.
+  skipWhitespace(input);
+
+  if (input.peekIsMatch(0, '.')) {
+    input.nextChar();
+
+    // Make sure dotted pair has a right value.
+    if (!peekIsDelimOrEnd(input, 0)) {
+      input.nextChar();
+
+      throw ReaderException(
+          "Expected value after improper list dot",
+          lexemeStart,
+          input.position(),
+          EXCEPTION_CALLSITE_ARGS);
+    }
+
+    // Read right half of pair.
+    auto cdr = read(input);
+
+    // Make sure pair is closed.
+    skipWhitespace(input);
+
+    if (input.peekIsMatch(0, ')')) {
+      input.nextChar();
+    } else {
+      throw ReaderException(
+          "Expected closing paren after cdr value",
+          lexemeStart,
+          input.position(),
+          EXCEPTION_CALLSITE_ARGS);
+    }
+
+    // Create and return pair.
+    return cons(vmState_.get(), car, cdr);
   } else {
-    throw ReaderException(
-        "Did not read expected closing parentheses",
-        lexemeStart,
-        input.position(),
-        EXCEPTION_CALLSITE_ARGS);
+    // Read the right side of the list pair.
+    auto cdr = readPair(input);
+
+    // Create and return list.
+    return cons(vmState_.get(), car, cdr);
   }
 }
 
@@ -301,7 +344,8 @@ Value Reader::readFixnum(CharacterStream& input) {
 }
 
 //------------------------------------------------------------------------------
-void Reader::skipWhitespace(CharacterStream& input) {
+size_t Reader::skipWhitespace(CharacterStream& input) {
+  size_t totalCharSkipped = 0;
   size_t charSkipped = 0;
 
   do {
@@ -313,12 +357,18 @@ void Reader::skipWhitespace(CharacterStream& input) {
     if (input.peekIsMatch(0, kLineCommentStartChar)) {
       charSkipped += input.skipToNextLine();
     }
+
+    totalCharSkipped += charSkipped;
   } while (charSkipped > 0);
+
+  return totalCharSkipped;
 }
 
 //------------------------------------------------------------------------------
 bool Reader::peekIsDelim(const CharacterStream& input, size_t offset) {
   if (input.peekIsWhitespace(offset)) {
+    return true;
+  } else {
     char c;
 
     if (input.tryPeekChar(offset, &c)) {

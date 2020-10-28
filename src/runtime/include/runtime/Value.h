@@ -2,6 +2,7 @@
 #pragma once
 #include "runtime/Exception.h"
 
+#include <array>
 #include <cassert>
 #include <iosfwd>
 #include <stdexcept>
@@ -10,10 +11,17 @@
 
 namespace Shiny {
   class Allocator;
+  class VmState;
+
   struct RawString;
+  struct RawPair;
 
   /** Type of value stored in a Value instance. */
-  enum class ValueType { EmptyList, Boolean, Fixnum, Character, String };
+  enum class ValueType { EmptyList, Boolean, Fixnum, Character, String, Pair };
+
+  /** Value type string names. */
+  static constexpr const std::array<const char*, 6> ValueTypeNames =
+      {"EmptyList", "Boolean", "Fixnum", "Character", "String", "Pair"};
 
   /** Fixnum type. */
   using fixnum_t = int;
@@ -42,8 +50,18 @@ namespace Shiny {
     /** String constructor. */
     explicit Value(RawString* rawString) noexcept
         : type_(ValueType::String),
-          string_ptr(rawString) {}
+          string_ptr(rawString) {
+      assert(rawString != nullptr);
+    }
 
+    /** Pair constructor. */
+    explicit Value(RawPair* rawPair) noexcept
+        : type_(ValueType::Pair),
+          pair_ptr(rawPair) {
+      assert(rawPair != nullptr);
+    }
+
+  public:
     /** Get the type for this value. */
     constexpr ValueType type() const noexcept { return type_; }
 
@@ -76,6 +94,9 @@ namespace Shiny {
       return type_ == ValueType::String;
     }
 
+    /** Test if value is of type pair. */
+    constexpr bool isPair() const noexcept { return type_ == ValueType::Pair; }
+
   public:
     /** Convert to fixnum integer value. Undefined behavior if not a fixnum. */
     constexpr fixnum_t toFixnum() const noexcept { return fixnum_value; }
@@ -88,6 +109,9 @@ namespace Shiny {
 
     /** Convert to a string_view. Undefined behavior if not a string. */
     std::string_view toStringView() const;
+
+    /** Convert to raw pair pointer. Undefined behavior if not a pair. */
+    RawPair* toRawPair() const noexcept { return pair_ptr; }
 
   public:
     /** Test if value is false. */
@@ -135,10 +159,17 @@ namespace Shiny {
       bool bool_value;
       char char_value;
       RawString* string_ptr;
+      RawPair* pair_ptr;
     };
   };
 
   std::ostream& operator<<(std::ostream& os, const Value& v);
+
+  /** Pair type. */
+  struct RawPair {
+    Value car;
+    Value cdr;
+  };
 
   /** Special character definitions. */
   namespace SpecialChars {
@@ -161,5 +192,38 @@ namespace Shiny {
     const std::string kTabName = "tab";
     const char kTabValue = 9;
   } // namespace SpecialChars
+
+  /** Cast exception - expected type does not match actual type. */
+  class WrongValueTypeException : public Exception {
+  public:
+    WrongValueTypeException(
+        ValueType expectedType,
+        ValueType actualType,
+        EXCEPTION_CALLSITE_PARAMS);
+  };
+
+  // ------------------------------------------------------------------------ //
+  // C style API for dealing with values.
+  // TODO: Change from exceptions to something C compatible (error type?).
+  // TODO: Finish C API, add tests.
+  // TODO: Move to RuntimeApi.h
+
+  /** Get string name for value type. */
+  std::string_view to_string(ValueType valueType) noexcept;
+
+  /** Create a new pair value. */
+  Value cons(VmState* vm, Value car, Value cdr);
+
+  /** Get the car of a pair (or throw an exception if value is not a pair). */
+  Value car(Value pair);
+
+  /** Set the car of a pair (or throw an exception if value is not a pair). */
+  void set_car(Value pair, Value v);
+
+  /** Get the cdr of a pair (or throw an exception if value is not a pair). */
+  Value cdr(Value pair);
+
+  /** Set the cdr of a pair (or throw an exception if value is not a pair). */
+  void set_cdr(Value pair, Value v);
 
 } // namespace Shiny

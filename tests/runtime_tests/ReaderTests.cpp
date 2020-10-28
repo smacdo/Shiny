@@ -109,10 +109,123 @@ TEST_CASE("Can read strings", "[Reader]") {
   }
 }
 
-TEST_CASE("Can read empty list", "[Reader]") {
+TEST_CASE("Can read pairs", "[Reader]") {
   auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
 
-  REQUIRE(vmState->globals().emptyList == read("()", vmState));
-  REQUIRE(vmState->globals().emptyList == read("(  )", vmState));
-  REQUIRE(vmState->globals().emptyList == read("(\n)", vmState));
+  SECTION("empty pair") {
+    REQUIRE(vmState->globals().emptyList == read("()", vmState));
+    REQUIRE(vmState->globals().emptyList == read("(  )", vmState));
+    REQUIRE(vmState->globals().emptyList == read("(\n)", vmState));
+  }
+
+  SECTION("dotted pair") {
+    auto first = read("(1 . 2)", vmState);
+
+    REQUIRE(first.isPair());
+    REQUIRE(Value{1} == first.toRawPair()->car);
+    REQUIRE(Value{2} == first.toRawPair()->cdr);
+
+    auto second = read("(#\\c . #f)", vmState);
+
+    REQUIRE(second.isPair());
+    REQUIRE(Value{'c'} == second.toRawPair()->car);
+    REQUIRE(Value{false} == second.toRawPair()->cdr);
+  }
+
+  SECTION("one list") {
+    auto first = read("(10)", vmState);
+
+    REQUIRE(first.isPair());
+    REQUIRE(Value{10} == first.toRawPair()->car);
+    REQUIRE(first.toRawPair()->cdr.isEmptyList());
+
+    auto second = read("(#f)", vmState);
+
+    REQUIRE(second.isPair());
+    REQUIRE(Value{false} == second.toRawPair()->car);
+    REQUIRE(second.toRawPair()->cdr.isEmptyList());
+  }
+
+  SECTION("two list") {
+    auto first = read("(22 42)", vmState);
+
+    REQUIRE(first.isPair());
+    auto p = first.toRawPair();
+
+    REQUIRE(Value{22} == p->car);
+    REQUIRE(p->cdr.isPair());
+    p = p->cdr.toRawPair();
+
+    REQUIRE(Value{42} == p->car);
+    REQUIRE(p->cdr.isEmptyList());
+
+    auto second = read("(22 . (42 . ()))", vmState);
+
+    REQUIRE(second.isPair());
+    p = second.toRawPair();
+
+    REQUIRE(Value{22} == p->car);
+    REQUIRE(p->cdr.isPair());
+    p = p->cdr.toRawPair();
+
+    REQUIRE(Value{42} == p->car);
+    REQUIRE(p->cdr.isEmptyList());
+  }
+
+  SECTION("three list") {
+    auto first = read("(12 8 13)", vmState);
+
+    REQUIRE(first.isPair());
+    auto p = first.toRawPair();
+
+    REQUIRE(Value{12} == p->car);
+    REQUIRE(p->cdr.isPair());
+    p = p->cdr.toRawPair();
+
+    REQUIRE(Value{8} == p->car);
+    REQUIRE(p->cdr.isPair());
+    p = p->cdr.toRawPair();
+
+    REQUIRE(Value{13} == p->car);
+    REQUIRE(p->cdr.isEmptyList());
+
+    auto second = read("(12 . (8 . (13 . ())))", vmState);
+
+    REQUIRE(second.isPair());
+    p = second.toRawPair();
+
+    REQUIRE(Value{12} == p->car);
+    REQUIRE(p->cdr.isPair());
+    p = p->cdr.toRawPair();
+
+    REQUIRE(Value{8} == p->car);
+    REQUIRE(p->cdr.isPair());
+    p = p->cdr.toRawPair();
+
+    REQUIRE(Value{13} == p->car);
+    REQUIRE(p->cdr.isEmptyList());
+  }
+
+  SECTION("three improper") {
+    auto first = read("(12 . (8 . 13))", vmState);
+
+    REQUIRE(first.isPair());
+    auto p = first.toRawPair();
+
+    REQUIRE(Value{12} == p->car);
+    REQUIRE(p->cdr.isPair());
+    p = p->cdr.toRawPair();
+
+    REQUIRE(Value{8} == p->car);
+    REQUIRE(Value{13} == p->cdr);
+
+    auto second = read("((22 . -22) . 13)", vmState);
+
+    REQUIRE(second.isPair());
+    p = second.toRawPair();
+
+    REQUIRE(Value{22} == p->car.toRawPair()->car);
+    REQUIRE(Value{-22} == p->car.toRawPair()->cdr);
+    REQUIRE(Value{13} == p->cdr);
+  }
 }

@@ -1,6 +1,7 @@
 #include "runtime/Value.h"
 
 #include "runtime/RawString.h"
+#include "runtime/VmState.h"
 #include "runtime/allocators/MallocAllocator.h"
 
 #include <catch2/catch.hpp>
@@ -225,5 +226,87 @@ TEST_CASE("String values", "[Value]") {
   SECTION("are not equal to any other type") {
     REQUIRE_FALSE(a == Value{});
     REQUIRE_FALSE(a == Value{22});
+  }
+}
+
+TEST_CASE("Pairs", "[Value]") {
+  VmState vm(std::make_unique<MallocAllocator>());
+  const auto empty = Value{vm.makePair(Value{}, Value{})};
+  const auto leaf = Value{vm.makePair(Value{42}, Value{'c'})};
+
+  const auto tail = Value{vm.makePair(Value{100}, Value{})};
+  auto mid = Value{vm.makePair(Value{2020}, tail)};
+  auto head = Value{vm.makePair(Value{22}, mid)};
+
+  SECTION("are always of type Pair") {
+    REQUIRE(ValueType::Pair == empty.type());
+    REQUIRE(empty.isPair());
+
+    REQUIRE(ValueType::Pair == leaf.type());
+    REQUIRE(leaf.isPair());
+  }
+
+  SECTION("can be printed") {
+    // REQUIRE(std::string("()") == empty.toString());
+    REQUIRE(std::string("(42 . #\\c)") == leaf.toString());
+
+    REQUIRE(std::string("(22 2020 100)") == head.toString());
+    REQUIRE(std::string("(2020 100)") == mid.toString());
+    REQUIRE(std::string("(100)") == tail.toString());
+  }
+
+  // TODO: Move C-API pair tests out to separate test file!
+  SECTION("can be created with cons") {
+    auto pair = cons(&vm, Value{36}, Value{112});
+
+    REQUIRE(pair.isPair());
+    REQUIRE(Value{36} == pair.toRawPair()->car);
+    REQUIRE(Value{112} == pair.toRawPair()->cdr);
+  }
+
+  SECTION("get car value") {
+    auto pair = cons(&vm, Value{'d'}, Value{-5});
+    REQUIRE(Value{'d'} == car(pair));
+  }
+
+  SECTION("get car throws exception if value is not pair") {
+    auto notPair = Value{};
+    REQUIRE_THROWS_AS(
+        [&notPair]() { car(notPair); }(), WrongValueTypeException);
+  }
+
+  SECTION("set car value") {
+    auto pair = cons(&vm, Value{'d'}, Value{-5});
+    set_car(pair, Value{-1024});
+    REQUIRE(Value{-1024} == car(pair));
+  }
+
+  SECTION("set car throws exception if value is not pair") {
+    auto notPair = Value{};
+    REQUIRE_THROWS_AS(
+        [&notPair]() { set_car(notPair, Value{}); }(), WrongValueTypeException);
+  }
+
+  SECTION("get cdr value") {
+    auto pair = cons(&vm, Value{'d'}, Value{-5});
+    REQUIRE(Value{-5} == cdr(pair));
+  }
+
+  SECTION("get cdr throws exception if value is not pair") {
+    auto notPair = Value{false};
+    REQUIRE_THROWS_AS(
+        [&notPair]() { cdr(notPair); }(), WrongValueTypeException);
+  }
+
+  SECTION("set cdr value") {
+    auto pair = cons(&vm, Value{'d'}, Value{-5});
+    set_cdr(pair, Value{'*'});
+    REQUIRE(Value{'*'} == cdr(pair));
+  }
+
+  SECTION("set cdr throws exception if value is not pair") {
+    auto notPair = Value{};
+    REQUIRE_THROWS_AS(
+        [&notPair]() { set_cdr(notPair, Value{}); }(), WrongValueTypeException);
   }
 }

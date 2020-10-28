@@ -19,5 +19,17 @@ VmState::~VmState() = default;
 
 //------------------------------------------------------------------------------
 Value VmState::makeString(std::string_view value) {
+  assert(allocator_ != nullptr);
   return Value{create_string(allocator_.get(), value)};
+}
+
+//------------------------------------------------------------------------------
+Value VmState::makePair(Value car, Value cdr) {
+  assert(allocator_ != nullptr);
+
+  auto rawPair = allocator_->construct<RawPair>();
+  rawPair->car = car;
+  rawPair->cdr = cdr;
+
+  return Value{rawPair};
 }

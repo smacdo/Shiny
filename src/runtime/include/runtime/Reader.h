@@ -21,6 +21,7 @@ namespace Shiny {
     Shiny::Value read(std::string_view input);
 
   private:
+    Value read(CharacterStream& input);
     Value readPair(CharacterStream& input);
     Value readFixnum(CharacterStream& input);
     Value readBoolean(CharacterStream& input);
@@ -28,7 +29,7 @@ namespace Shiny {
     Value readString(CharacterStream& input);
 
     /** Advance past whitespace including comments. */
-    static void skipWhitespace(CharacterStream& input);
+    static size_t skipWhitespace(CharacterStream& input);
 
     /** Peek if character is a delimitter. */
     static bool peekIsDelim(const CharacterStream& input, size_t offset);

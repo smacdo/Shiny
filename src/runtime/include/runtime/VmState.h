@@ -28,11 +28,17 @@ namespace Shiny {
     /** Get reference to VM allocated globals. */
     const Globals& globals() const noexcept { return globals_; }
 
-    /** Create a new string. */ // TODO: Refactor.
+    /** Create a new string. */
     Value makeString(std::string_view value);
+
+    /** Make a new pair. */
+    Value makePair(Value car, Value cdr);
 
   private:
     std::unique_ptr<Allocator> allocator_;
     Globals globals_;
   };
+
+  // TODO: Create a C API.
+
 } // namespace Shiny
