@@ -87,6 +87,19 @@ bool CharacterStream::peekIsMatch(size_t offset, char expected) const noexcept {
 }
 
 //------------------------------------------------------------------------------
+bool CharacterStream::peekIsAlpha(size_t offset) const noexcept {
+  char c;
+
+  if (tryPeekChar(offset, &c)) {
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+//------------------------------------------------------------------------------
 bool CharacterStream::peekIsDigit(size_t offset) const noexcept {
   char c;
 

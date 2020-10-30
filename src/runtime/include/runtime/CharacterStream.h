@@ -42,6 +42,9 @@ namespace Shiny {
     /** Peek to see if character matches the given character. */
     bool peekIsMatch(size_t offset, char expected) const noexcept;
 
+    /** Peek to see if character is an alphabetical character. */
+    bool peekIsAlpha(size_t offset) const noexcept;
+
     /** Peek to see if character is a digit (0-9). */
     bool peekIsDigit(size_t offset) const noexcept;
 

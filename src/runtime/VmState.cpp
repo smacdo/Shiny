@@ -33,3 +33,31 @@ Value VmState::makePair(Value car, Value cdr) {
 
   return Value{rawPair};
 }
+
+//------------------------------------------------------------------------------
+Value VmState::makeSymbol(std::string_view name) {
+  // TODO: Use a hashtable solution instead of linked list.
+  // TODO: Move this to a SymbolTable class.
+  // Search for an existing symbol with the same name.
+  Value current = symbols_;
+
+  while (!current.isEmptyList()) {
+    auto symbol = car(current);
+    assert(symbol.isSymbol());
+
+    if (symbol.toStringView() == name) {
+      // Matching symbol name found! Return it to the caller.
+      return symbol;
+    } else {
+      current = cdr(current);
+    }
+  }
+
+  // Create and add a new symbol to the symbol table.
+  assert(allocator_ != nullptr);
+
+  auto symbol = Value{create_string(allocator_.get(), name), ValueType::Symbol};
+  symbols_ = cons(this, symbol, symbols_);
+
+  return symbol;
+}

@@ -41,8 +41,6 @@ TEST_CASE("Rejects invalid fixnums", "[Reader]") {
   REQUIRE_THROWS_AS([]() { read("1e"); }(), ReaderException);
   REQUIRE_THROWS_AS([]() { read("2+31"); }(), ReaderException);
   REQUIRE_THROWS_AS([]() { read("2.4"); }(), ReaderException);
-  REQUIRE_THROWS_AS([]() { read("+1"); }(), ReaderException);
-  REQUIRE_THROWS_AS([]() { read("--1"); }(), ReaderException);
 }
 
 TEST_CASE("Can read boolean", "[Reader]") {
@@ -228,4 +226,21 @@ TEST_CASE("Can read pairs", "[Reader]") {
     REQUIRE(Value{-22} == p->car.toRawPair()->cdr);
     REQUIRE(Value{13} == p->cdr);
   }
+}
+
+TEST_CASE("Read symbols", "[Reader]") {
+  auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
+  auto foo = vmState->makeSymbol("foo");
+  auto bar = vmState->makeSymbol("bar");
+
+  REQUIRE(foo == read("foo", vmState));
+  REQUIRE(bar == read("bar", vmState));
+  REQUIRE(bar != read("foo", vmState));
+  REQUIRE(foo == read("foo", vmState));
+
+  auto minus = vmState->makeSymbol("-");
+  REQUIRE(minus == read("-", vmState));
+
+  auto weird = vmState->makeSymbol("++1");
+  REQUIRE(weird == read("++1", vmState));
 }

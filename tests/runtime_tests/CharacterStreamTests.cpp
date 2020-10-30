@@ -214,6 +214,23 @@ TEST_CASE("Check if character matches", "[CharacterStream]") {
   }
 }
 
+TEST_CASE("Check if alphabet character", "[CharacterStream]") {
+  CharacterStream cs("+aXz! mZaAb");
+
+  REQUIRE_FALSE(cs.peekIsAlpha(0)); // +
+  REQUIRE(cs.peekIsAlpha(1));       // a
+  REQUIRE(cs.peekIsAlpha(2));       // X
+  REQUIRE(cs.peekIsAlpha(3));       // z
+  REQUIRE_FALSE(cs.peekIsAlpha(4)); // !
+  REQUIRE_FALSE(cs.peekIsAlpha(5)); //
+  REQUIRE(cs.peekIsAlpha(6));       // m
+  REQUIRE(cs.peekIsAlpha(7));       // Z
+  REQUIRE(cs.peekIsAlpha(8));       // a
+  REQUIRE(cs.peekIsAlpha(9));       // A
+  REQUIRE(cs.peekIsAlpha(10));      // b
+  REQUIRE_FALSE(cs.peekIsAlpha(11));
+}
+
 TEST_CASE("Check if digit", "[CharacterStream]") {
   CharacterStream cs("+012345678x9");
 

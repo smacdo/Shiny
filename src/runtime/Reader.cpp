@@ -58,6 +58,8 @@ Value Reader::read(CharacterStream& input) {
     // This is a number because the first character is either a digit or starts
     // with a negative sign.
     return readFixnum(input);
+  } else if (peekIsIdent(input, 0)) {
+    return readSymbol(input);
   } else {
     // oops i didn't recogonize this!
     // TODO: this breaks badly for an empty/whitespace string. Fix!!
@@ -344,6 +346,24 @@ Value Reader::readFixnum(CharacterStream& input) {
 }
 
 //------------------------------------------------------------------------------
+Value Reader::readSymbol(CharacterStream& input) {
+  textBuffer_.clear();
+
+  // Move forward until the first non-symbol character is found.
+  while (peekIsIdent(input, 0)) {
+    textBuffer_.push_back(input.nextChar());
+  }
+
+  // Next character after end of symbol must be a delimiter.
+  if (!peekIsDelimOrEnd(input, 0)) {
+    throw ReaderExpectedDelimException(
+        input.position(), EXCEPTION_CALLSITE_ARGS);
+  }
+
+  return Value{vmState_->makeSymbol(textBuffer_)};
+}
+
+//------------------------------------------------------------------------------
 size_t Reader::skipWhitespace(CharacterStream& input) {
   size_t totalCharSkipped = 0;
   size_t charSkipped = 0;
@@ -389,6 +409,43 @@ bool Reader::peekIsDelimOrEnd(const CharacterStream& input, size_t offset) {
   }
 
   return true;
+}
+
+//------------------------------------------------------------------------------
+bool Reader::peekIsIdent(const CharacterStream& input, size_t offset) {
+  return input.peekIsAlpha(offset) || input.peekIsDigit(offset) ||
+         peekIsExtendedIdent(input, offset);
+}
+
+//------------------------------------------------------------------------------
+bool Reader::peekIsExtendedIdent(const CharacterStream& input, size_t offset) {
+  char c;
+
+  if (input.tryPeekChar(offset, &c)) {
+    switch (c) {
+    case '!':
+    case '$':
+    case '%':
+    case '&':
+    case '*':
+    case '+':
+    case '-':
+    case '.':
+    case '/':
+    case ':':
+    case '<':
+    case '=':
+    case '>':
+    case '?':
+    case '@':
+    case '^':
+    case '_':
+    case '~':
+      return true;
+    }
+  }
+
+  return false;
 }
 
 //------------------------------------------------------------------------------

@@ -131,6 +131,9 @@ std::ostream& Value::print(std::ostream& os, const Value& v) {
   case ValueType::Fixnum:
     os << v.toFixnum();
     break;
+  case ValueType::Symbol:
+    os << v.toStringView();
+    break;
   case ValueType::Character:
     printChar(os, v.toChar());
     break;

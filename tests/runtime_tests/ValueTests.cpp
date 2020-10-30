@@ -15,7 +15,9 @@ TEST_CASE("Empty List", "[Value]") {
     REQUIRE(ValueType::EmptyList == empty.type());
   }
 
-  SECTION("can be printed") { REQUIRE(std::string("()") == empty.toString()); }
+  SECTION("convert to a string") {
+    REQUIRE(std::string("()") == empty.toString());
+  }
 
   SECTION("is only equal to another empty list") {
     Value secondEmpty{};
@@ -48,7 +50,7 @@ TEST_CASE("Fixnum value", "[Value]") {
     REQUIRE(ValueType::Fixnum == b.type());
   }
 
-  SECTION("can be printed") {
+  SECTION("convert to a string") {
     REQUIRE(std::string("0") == zero.toString());
     REQUIRE(std::string("22") == a.toString());
     REQUIRE(std::string("-5") == b.toString());
@@ -95,7 +97,7 @@ TEST_CASE("Boolean values", "[Value]") {
     REQUIRE(ValueType::Boolean == f.type());
   }
 
-  SECTION("can be printed") {
+  SECTION("convert to a string") {
     REQUIRE(std::string("#t") == t.toString());
     REQUIRE(std::string("#f") == f.toString());
   }
@@ -123,6 +125,50 @@ TEST_CASE("Boolean values", "[Value]") {
   }
 }
 
+TEST_CASE("Symbol values", "[Value]") {
+  MallocAllocator alloc;
+
+  SECTION("are always of type string") {
+    const Value s0{create_string(&alloc, "sym_0"), ValueType::Symbol};
+    REQUIRE(ValueType::Symbol == s0.type());
+    REQUIRE(s0.isSymbol());
+
+    const Value s1{create_string(&alloc, "sym_1"), ValueType::Symbol};
+    REQUIRE(ValueType::Symbol == s1.type());
+    REQUIRE(s1.isSymbol());
+  }
+
+  SECTION("convert to a string") {
+    const Value s0{create_string(&alloc, "sym_0"), ValueType::Symbol};
+    REQUIRE(std::string("sym_0") == s0.toString());
+
+    const Value s1{create_string(&alloc, "foobar"), ValueType::Symbol};
+    REQUIRE(std::string("foobar") == s1.toString());
+  }
+
+  SECTION("can convert to a string_view") {
+    const Value s0{create_string(&alloc, "sym_0"), ValueType::Symbol};
+    REQUIRE(std::string_view{"sym_0"} == s0.toStringView());
+
+    const Value s1{create_string(&alloc, "foobar"), ValueType::Symbol};
+    REQUIRE(std::string_view{"foobar"} == s1.toStringView());
+  }
+
+  SECTION("is only equal to itself") {
+    const Value s0{create_string(&alloc, "sym_0"), ValueType::Symbol};
+    Value s0_copy{create_string(&alloc, "sym_0"), ValueType::Symbol};
+    const Value s1{create_string(&alloc, "foobar"), ValueType::Symbol};
+
+    REQUIRE(s0 == s0);
+    REQUIRE_FALSE(s0 == s0_copy);
+    REQUIRE_FALSE(s0 == s1);
+
+    REQUIRE_FALSE(s0 != s0);
+    REQUIRE(s0 != s0_copy);
+    REQUIRE(s0 != s1);
+  }
+}
+
 TEST_CASE("Character values", "[Value]") {
   const Value a{'a'};
   Value b{'b'};
@@ -134,7 +180,7 @@ TEST_CASE("Character values", "[Value]") {
     REQUIRE(ValueType::Character == x.type());
   }
 
-  SECTION("can be printed") {
+  SECTION("convert to a string") {
     REQUIRE(std::string("#\\a") == a.toString());
     REQUIRE(std::string("#\\b") == b.toString());
     REQUIRE(std::string("#\\x") == x.toString());
@@ -189,13 +235,13 @@ TEST_CASE("String values", "[Value]") {
     REQUIRE(ValueType::String == foobar.type());
   }
 
-  SECTION("can be printed") {
+  SECTION("convert to a string") {
     REQUIRE(std::string("\"a\"") == a.toString());
     REQUIRE(std::string("\"foo\"") == foo.toString());
     REQUIRE(std::string("\"foobar\"") == foobar.toString());
   }
 
-  SECTION("can be printed_view") {
+  SECTION("convert to a string_view") {
     REQUIRE(std::string_view{"a"} == a.toStringView());
     REQUIRE(std::string_view{"foo"} == foo.toStringView());
     REQUIRE(std::string_view{"foobar"} == foobar.toStringView());
@@ -246,8 +292,8 @@ TEST_CASE("Pairs", "[Value]") {
     REQUIRE(leaf.isPair());
   }
 
-  SECTION("can be printed") {
-    // REQUIRE(std::string("()") == empty.toString());
+  SECTION("convert to a string") {
+    REQUIRE(std::string("(())") == empty.toString());
     REQUIRE(std::string("(42 . #\\c)") == leaf.toString());
 
     REQUIRE(std::string("(22 2020 100)") == head.toString());

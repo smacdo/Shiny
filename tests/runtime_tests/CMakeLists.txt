@@ -9,6 +9,7 @@ add_executable(test-shiny-runtime
     RawStringTests.cpp
     ReaderTests.cpp
     ValueTests.cpp
+    VmStateTests.cpp
 )
 
 set_target_properties(test-shiny-runtime

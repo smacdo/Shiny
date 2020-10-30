@@ -34,8 +34,12 @@ namespace Shiny {
     /** Make a new pair. */
     Value makePair(Value car, Value cdr);
 
+    /** Make a symbol that matches the given string value. */
+    Value makeSymbol(std::string_view name);
+
   private:
     std::unique_ptr<Allocator> allocator_;
+    Value symbols_;
     Globals globals_;
   };
 

@@ -17,11 +17,25 @@ namespace Shiny {
   struct RawPair;
 
   /** Type of value stored in a Value instance. */
-  enum class ValueType { EmptyList, Boolean, Fixnum, Character, String, Pair };
+  enum class ValueType {
+    EmptyList,
+    Boolean,
+    Fixnum,
+    Symbol,
+    Character,
+    String,
+    Pair
+  };
 
   /** Value type string names. */
-  static constexpr const std::array<const char*, 6> ValueTypeNames =
-      {"EmptyList", "Boolean", "Fixnum", "Character", "String", "Pair"};
+  static constexpr const std::array<const char*, 7> ValueTypeNames = {
+      "EmptyList",
+      "Boolean",
+      "Fixnum",
+      "Symbol",
+      "Character",
+      "String",
+      "Pair"};
 
   /** Fixnum type. */
   using fixnum_t = int;
@@ -48,10 +62,13 @@ namespace Shiny {
           char_value(c) {}
 
     /** String constructor. */
-    explicit Value(RawString* rawString) noexcept
-        : type_(ValueType::String),
+    explicit Value(
+        RawString* rawString,
+        ValueType type = ValueType::String) noexcept
+        : type_(type),
           string_ptr(rawString) {
       assert(rawString != nullptr);
+      assert(type == ValueType::String || type == ValueType::Symbol);
     }
 
     /** Pair constructor. */
@@ -84,6 +101,11 @@ namespace Shiny {
       return type_ == ValueType::Fixnum;
     }
 
+    /** Test if value is of type symbol. */
+    constexpr bool isSymbol() const noexcept {
+      return type_ == ValueType::Symbol;
+    }
+
     /** Test if value is of type character. */
     constexpr bool isCharacter() const noexcept {
       return type_ == ValueType::Character;
@@ -107,7 +129,9 @@ namespace Shiny {
     /** Convert to a boolean value. Undefined behavior if not a boolean. */
     constexpr char toChar() const noexcept { return char_value; }
 
-    /** Convert to a string_view. Undefined behavior if not a string. */
+    /**
+     * Convert to a string_view. Undefined behavior if not a string or a symbol.
+     */
     std::string_view toStringView() const;
 
     /** Convert to raw pair pointer. Undefined behavior if not a pair. */
@@ -140,6 +164,7 @@ namespace Shiny {
           return fixnum_value == rhs.fixnum_value;
         case ValueType::Character:
           return char_value == rhs.char_value;
+        case ValueType::Symbol:
         case ValueType::String:
           return string_ptr == rhs.string_ptr;
         default:

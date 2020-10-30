@@ -27,6 +27,7 @@ namespace Shiny {
     Value readBoolean(CharacterStream& input);
     Value readCharacter(CharacterStream& input);
     Value readString(CharacterStream& input);
+    Value readSymbol(CharacterStream& input);
 
     /** Advance past whitespace including comments. */
     static size_t skipWhitespace(CharacterStream& input);
@@ -36,6 +37,13 @@ namespace Shiny {
 
     /** Peek if character is a delimitter or end of stream. */
     static bool peekIsDelimOrEnd(const CharacterStream& input, size_t offset);
+
+    /** Peek if character is part of extended identifier character set. */
+    static bool peekIsIdent(const CharacterStream& input, size_t offset);
+
+    /** Peek if character is part of extended identifier character set. */
+    static bool
+    peekIsExtendedIdent(const CharacterStream& input, size_t offset);
 
     /** Peek and advance if next characters match. */
     static bool
