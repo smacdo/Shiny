@@ -1,5 +1,6 @@
 #include "runtime/Reader.h"
 
+#include "runtime/Builtins.h"
 #include "runtime/CharacterStream.h"
 #include "runtime/Value.h"
 #include "runtime/VmState.h"
@@ -59,7 +60,16 @@ Value Reader::read(CharacterStream& input) {
     // with a negative sign.
     return readFixnum(input);
   } else if (peekIsIdent(input, 0)) {
+    // Symbol.
     return readSymbol(input);
+  } else if (input.peekIsMatch(0, '\'')) {
+    // Quote syntatic sugar.
+    input.nextChar();
+
+    return cons(
+        vmState_.get(),
+        vmState_->makeSymbol(SpecialForms::kQuote),
+        cons(vmState_.get(), read(input), vmState_->globals().emptyList));
   } else {
     // oops i didn't recogonize this!
     // TODO: this breaks badly for an empty/whitespace string. Fix!!

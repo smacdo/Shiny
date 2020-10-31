@@ -6,5 +6,5 @@ public:
   Evaluator();
   ~Evaluator();
 
-  Shiny::Value Evaluate(Shiny::Value expression);
+  Shiny::Value evaluate(Shiny::Value expression);
 };
