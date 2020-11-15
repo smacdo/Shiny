@@ -69,7 +69,7 @@ Value Reader::read(CharacterStream& input) {
     return cons(
         vmState_.get(),
         vmState_->makeSymbol(SpecialForms::kQuote),
-        cons(vmState_.get(), read(input), vmState_->globals().emptyList));
+        cons(vmState_.get(), read(input), vmState_->constants().emptyList));
   } else {
     // oops i didn't recogonize this!
     // TODO: this breaks badly for an empty/whitespace string. Fix!!
@@ -86,7 +86,7 @@ Value Reader::readPair(CharacterStream& input) {
   // Closing paren can be interpreted as the empty list in our mutually
   // recursive reader.
   if (input.peekIsMatch(0, ')')) {
-    return vmState_->globals().emptyList;
+    return vmState_->constants().emptyList;
   }
 
   // Read the left side of the pair (car).
@@ -155,18 +155,18 @@ Value Reader::readBoolean(CharacterStream& input) {
   }
 
   switch (input.nextChar()) {
-  case 't':
-    result = vmState_->globals().bTrue;
-    break;
-  case 'f':
-    result = vmState_->globals().bFalse;
-    break;
-  default:
-    throw ReaderException(
-        "Unexpected character following # when parsing for boolean or char",
-        lexemeStart,
-        input.position(),
-        EXCEPTION_CALLSITE_ARGS);
+    case 't':
+      result = vmState_->constants().bTrue;
+      break;
+    case 'f':
+      result = vmState_->constants().bFalse;
+      break;
+    default:
+      throw ReaderException(
+          "Unexpected character following # when parsing for boolean or char",
+          lexemeStart,
+          input.position(),
+          EXCEPTION_CALLSITE_ARGS);
   }
 
   // Character / boolean values lexemes must terminate with a separator
@@ -285,21 +285,21 @@ Value Reader::readString(CharacterStream& input) {
       char n = input.nextChar();
 
       switch (n) {
-      case '\\':
-        textBuffer_.push_back('\\');
-        break;
-      case '"':
-        textBuffer_.push_back('"');
-        break;
-      case 'n':
-        textBuffer_.push_back('\n');
-        break;
-      default:
-        throw ReaderException(
-            "Unknown escape sequence",
-            lexemeStart,
-            input.position(),
-            EXCEPTION_CALLSITE_ARGS);
+        case '\\':
+          textBuffer_.push_back('\\');
+          break;
+        case '"':
+          textBuffer_.push_back('"');
+          break;
+        case 'n':
+          textBuffer_.push_back('\n');
+          break;
+        default:
+          throw ReaderException(
+              "Unknown escape sequence",
+              lexemeStart,
+              input.position(),
+              EXCEPTION_CALLSITE_ARGS);
       }
     } else {
       // Normal, non-escaped character.
@@ -308,13 +308,14 @@ Value Reader::readString(CharacterStream& input) {
   }
 
   // Verify the string is terminated by a double quote.
-  if (!input.peekIsMatch(0, '"')) {
-    if (input.hasNext()) {
-      input.nextChar();
-    }
-
+  if (input.peekIsMatch(0, '"')) {
+    input.nextChar();
+  } else {
     throw ReaderException(
-        "Terminating double quote missing at end of string",
+        fmt::format(
+            "Terminating double quote missing at end of string ({} - {})",
+            lexemeStart.offset,
+            input.position().offset),
         lexemeStart,
         input.position(),
         EXCEPTION_CALLSITE_ARGS);
@@ -433,25 +434,25 @@ bool Reader::peekIsExtendedIdent(const CharacterStream& input, size_t offset) {
 
   if (input.tryPeekChar(offset, &c)) {
     switch (c) {
-    case '!':
-    case '$':
-    case '%':
-    case '&':
-    case '*':
-    case '+':
-    case '-':
-    case '.':
-    case '/':
-    case ':':
-    case '<':
-    case '=':
-    case '>':
-    case '?':
-    case '@':
-    case '^':
-    case '_':
-    case '~':
-      return true;
+      case '!':
+      case '$':
+      case '%':
+      case '&':
+      case '*':
+      case '+':
+      case '-':
+      case '.':
+      case '/':
+      case ':':
+      case '<':
+      case '=':
+      case '>':
+      case '?':
+      case '@':
+      case '^':
+      case '_':
+      case '~':
+        return true;
     }
   }
 

@@ -89,6 +89,11 @@ TEST_CASE("Can read strings", "[Reader]") {
     REQUIRE("\"hello world\"" == read("\"hello world\"", vmState).toString());
   }
 
+  SECTION("one line string with padding") {
+    REQUIRE(
+        "\"hello world\"" == read("  \"hello world\" ", vmState).toString());
+  }
+
   SECTION("forward slash is escaped") {
     REQUIRE("\"1 \\\\ 2\"" == read("\"1 \\\\ 2\"", vmState).toString());
   }
@@ -111,9 +116,9 @@ TEST_CASE("Can read pairs", "[Reader]") {
   auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
 
   SECTION("empty pair") {
-    REQUIRE(vmState->globals().emptyList == read("()", vmState));
-    REQUIRE(vmState->globals().emptyList == read("(  )", vmState));
-    REQUIRE(vmState->globals().emptyList == read("(\n)", vmState));
+    REQUIRE(vmState->constants().emptyList == read("()", vmState));
+    REQUIRE(vmState->constants().emptyList == read("(  )", vmState));
+    REQUIRE(vmState->constants().emptyList == read("(\n)", vmState));
   }
 
   SECTION("dotted pair") {
@@ -225,6 +230,20 @@ TEST_CASE("Can read pairs", "[Reader]") {
     REQUIRE(Value{22} == p->car.toRawPair()->car);
     REQUIRE(Value{-22} == p->car.toRawPair()->cdr);
     REQUIRE(Value{13} == p->cdr);
+  }
+
+  SECTION("pair string after int") {
+    auto first = read("(5 \"bob\")", vmState);
+
+    REQUIRE(first.isPair());
+    auto p = first.toRawPair();
+
+    REQUIRE(Value{5} == p->car);
+    REQUIRE(p->cdr.isPair());
+    p = p->cdr.toRawPair();
+
+    REQUIRE(std::string("bob") == p->car.toStringView());
+    REQUIRE(p->cdr.isEmptyList());
   }
 }
 

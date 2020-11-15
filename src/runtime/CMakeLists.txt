@@ -5,6 +5,7 @@ add_library(shiny-runtime
     allocators/MallocAllocator.cpp
     Allocator.cpp
     CharacterStream.cpp
+    Environment.cpp
     Evaluator.cpp
     Exception.cpp
     RawString.cpp

@@ -1,4 +1,5 @@
 #pragma once
+#include "runtime/Environment.h"
 #include "runtime/Value.h"
 
 #include <memory>
@@ -6,10 +7,11 @@
 
 namespace Shiny {
   class Allocator;
+  class Environment;
 
   /** Shiny virtual machine state. */
   class VmState {
-    struct Globals {
+    struct Constants {
       Value bTrue{true};
       Value bFalse{false};
       Value emptyList;
@@ -23,10 +25,16 @@ namespace Shiny {
     ~VmState();
 
     /** Get reference to VM allocated globals. */
-    Globals& globals() noexcept { return globals_; }
+    Constants& constants() noexcept { return constants_; }
 
     /** Get reference to VM allocated globals. */
-    const Globals& globals() const noexcept { return globals_; }
+    const Constants& constants() const noexcept { return constants_; }
+
+    /** Get the root environment. */
+    Environment& environment() noexcept { return env_; };
+
+    /** Get the root environment. */
+    const Environment& environment() const noexcept { return env_; };
 
     /** Create a new string. */
     Value makeString(std::string_view value);
@@ -39,8 +47,9 @@ namespace Shiny {
 
   private:
     std::unique_ptr<Allocator> allocator_;
+    Environment env_;
+    Constants constants_;
     Value symbols_;
-    Globals globals_;
   };
 
   // TODO: Create a C API.

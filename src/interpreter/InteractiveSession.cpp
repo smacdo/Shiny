@@ -28,7 +28,7 @@ void InteractiveSession::Run() {
 void InteractiveSession::MainLoop() {
   // Interpreter initialize.
   auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
-  Evaluator evaluator;
+  Evaluator evaluator(vmState);
 
   std::string line;
 
