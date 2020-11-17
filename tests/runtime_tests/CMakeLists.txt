@@ -10,6 +10,7 @@ add_executable(test-shiny-runtime
     MallocAllocatorTests.cpp
     RawStringTests.cpp
     ReaderTests.cpp
+    SExpressionTests.cpp
     ValueTests.cpp
     VmStateTests.cpp
 )
