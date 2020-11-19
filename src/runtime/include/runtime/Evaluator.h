@@ -4,8 +4,15 @@
 
 namespace Shiny {
   class VmState;
-
-  /** Evalutes Scheme code in the context an executing VM. */
+  /**
+   * Evaluates Scheme code in the context of an executing VM.
+   *
+   * The current evaluator implementation is a simple AST (abstract syntax
+   * tree) evaluator, which is sub-optimal for a real world implementation. It
+   * will be replaced with a faster bytecode interpreter in the future but for
+   * the moment I am priotizing bootstrapping a functional scheme interpreter
+   * over a fast one.
+   */
   class Evaluator {
   public:
     Evaluator(std::shared_ptr<VmState> vmState);
@@ -18,9 +25,7 @@ namespace Shiny {
     static bool isSelfEvaluating(Shiny::Value value);
 
   private:
-    Shiny::Value evaluateList(Shiny::Value expression);
-    Shiny::Value
-    evaluateProcedure(Shiny::Value procedure, Shiny::Value arguments);
+    Shiny::Value ifProc(Shiny::Value arguments, VmState& vm);
 
     static Shiny::Value defineProc(Shiny::Value arguments, VmState& vm);
     static Shiny::Value quoteProc(Shiny::Value arguments, VmState& vm);
@@ -31,6 +36,7 @@ namespace Shiny {
 
     // TODO: Use a LUT for this.
     Shiny::Value defineSymbol_;
+    Shiny::Value ifSymbol_;
     Shiny::Value quoteSymbol_;
     Shiny::Value setSymbol_;
   };

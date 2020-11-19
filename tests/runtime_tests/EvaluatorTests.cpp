@@ -224,3 +224,43 @@ TEST_CASE("Setting values", "[Evaluator]") {
   //  5. Set! will not modify a sibling scope.
   //  6. Set! will not modify a child scope.
 }
+
+TEST_CASE("If procedure", "[Evaluator]") {
+  auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
+
+  SECTION("when predicate is true it evaluates consequent") {
+    REQUIRE(Value{5} == evaluate("(if #t 5 10)", vmState));
+    REQUIRE(Value{'t'} == evaluate("(if #t #\\t 6)", vmState));
+  }
+
+  SECTION("when predicate is false it evaluates alternative") {
+    REQUIRE(Value{10} == evaluate("(if #f 5 10)", vmState));
+    REQUIRE(Value{'f'} == evaluate("(if #f 0 #\\f)", vmState));
+  }
+
+  SECTION("when predicate is false with missing alternative it returns false") {
+    REQUIRE(Value{false} == evaluate("(if #f 5)", vmState));
+    REQUIRE(Value{false} == evaluate("(if #f 0)", vmState));
+  }
+
+  // TODO: Make sure predicate is evaluated.
+
+  SECTION("when predicate is true it evaluates consequent") {
+    evaluate("(define maybeTrue #t)", vmState);
+    REQUIRE(Value{5} == evaluate("(if maybeTrue 5 10)", vmState));
+
+    evaluate("(set! maybeTrue #f)", vmState);
+    REQUIRE(Value{6} == evaluate("(if maybeTrue #\\t 6)", vmState));
+  }
+
+  SECTION("any non-false values are always true") {
+    REQUIRE(Value{'T'} == evaluate("(if 0 #\\T #\\F)", vmState));
+    REQUIRE(Value{'T'} == evaluate("(if 1 #\\T #\\F)", vmState));
+    REQUIRE(Value{'T'} == evaluate("(if #\\f #\\T #\\F)", vmState));
+  }
+
+  // TODO: After converting to SEXP with better argument handling...
+  //  1. No args => exception.
+  //  2. One arg => exception.
+  //  3. Three or more args => exception.
+}
