@@ -8,7 +8,9 @@ add_library(shiny-runtime
     Environment.cpp
     Evaluator.cpp
     Exception.cpp
+    Procedures.cpp
     RawString.cpp
+    RuntimeApi.cpp
     Reader.cpp
     Value.cpp
     VmState.cpp

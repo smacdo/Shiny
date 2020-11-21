@@ -14,6 +14,8 @@ set(
 include(ClangTidy)
 include(CppSanitizers)
 
+add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+
 add_subdirectory(thirdparty)
 add_subdirectory(src/interpreter)
 add_subdirectory(src/runtime)

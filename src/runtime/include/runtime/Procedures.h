@@ -1,59 +1,23 @@
+
 #pragma once
+#include "runtime/Value.h"
 
 namespace Shiny {
-  /**
-   * Pops the next argument from the argument list or throws an exception.
-   *
-   * \param args        Argument list to pop.
-   * \param nextArgsOut Optional, receives the remainder of the popped
-   *                    argument list.
-   * \returns The popped argument value.
-   */
-  Value popArgument(Value args, Value* nextArgsOut);
+  class Environment;
 
-  /**
-   * Pops the next argument from the argument list and checks that it matches
-   * the requested type otherwise throws an exception.
-   *
-   * \param args         Argument list to pop.
-   * \param expectedType The expected value type for the popped argument.
-   * \param nextArgsOut  Optional, receives the remainder of the popped
-   *                     argument list.
-   * \returns The popped argument value.
-   */
-  Value popArgument(Value args, ValueType expectedType, Value* nextArgsOut);
+  /** Register all builtin procedures. */
+  void registerBuiltinProcedures(VmState& vm, Environment& env);
 
-  /**
-   * Tries to get the next argument from the argument list and optionally
-   * calculates the remaining unread arguments.
-   *
-   * \param args        Argument list to pop.
-   * \param resultOut   Optional, receives the value of popped argument.
-   * \param nextArgsOut Optional, receives the remainder of the popped
-   *                    argument list.
-   * \returns True if there was an argument to pop, false otherwise.
-   */
-  bool tryPopArgument(Value args, Value* resultOut, Value* nextArgsOut);
+  /** Returns the sum of their arguments. */
+  Value add_proc(Value args, VmState& vm, Environment& env);
 
-  /**
-   * Tries to get the next argument from the argument list and optionally
-   * calculates the remaining unread arguments.
-   *
-   * If the popped argument value does not match the given value type an
-   * exception will be thrown.
-   *
-   * \param args         Argument list to pop.
-   * \param expectedType The expected value type for the popped argument.
-   * \param resultOut    Optional, receives the value of popped argument.
-   * \param nextArgsOut  Optional, receives the remainder of the popped
-   *                     argument list.
-   * \returns True if there was an argument to pop, false otherwise.
-   */
-  bool tryPopArgument(
-      Value args,
-      ValueType expectedType,
-      Value* resultOut,
-      Value* nextArgsOut);
+  /** Prints all bound variables. */
+  Value printVars_proc(Value args, VmState& vm, Environment& env);
+
+  namespace ProcedureNames {
+    constexpr const char* kDebugPrintVars = "debug-print-vars";
+    constexpr const char* kAdd = "+";
+  } // namespace ProcedureNames
 
   namespace SpecialForms {
     constexpr const char* kDefine = "define";

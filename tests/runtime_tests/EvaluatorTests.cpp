@@ -5,53 +5,13 @@
 #include "runtime/VmState.h"
 #include "runtime/allocators/MallocAllocator.h"
 
-#include <catch2/catch.hpp>
+#include "support/TestHelpers.h"
 
-#include <iostream>
+#include <catch2/catch.hpp>
 
 using namespace Shiny;
 
-namespace {
-  Value read(std::string_view input, std::shared_ptr<VmState> vmState) {
-    Reader r{vmState};
-    return r.read(input);
-  }
-
-  Value evaluate(std::string_view input, std::shared_ptr<VmState> vmState) {
-    Evaluator eval(vmState);
-    return eval.evaluate(read(input, vmState));
-  }
-
-  bool listEquals(Value expected, Value actual) {
-    if (!expected.isPair() || !actual.isPair()) {
-      return false;
-    }
-
-    auto a = expected;
-    auto b = actual;
-
-    int index = 0;
-
-    do {
-      auto va = car(a);
-      auto vb = car(b);
-
-      a = cdr(a);
-      b = cdr(b);
-
-      if (va != vb || (a.isEmptyList() != b.isEmptyList())) {
-        std::cerr << "List mismatch at index " << index << ": expected "
-                  << a.toString() << ", but was " << b.toString() << std::endl;
-        return false;
-      }
-
-      index++;
-    } while (!a.isEmptyList() && !b.isEmptyList());
-
-    return true;
-  }
-} // namespace
-
+// TODO: Rewrite using the test fixture in EvaluatorProcedureTests.cpp
 TEST_CASE("Self evaluating values", "[Evaluator]") {
   auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
 

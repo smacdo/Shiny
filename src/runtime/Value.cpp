@@ -13,6 +13,8 @@
 
 using namespace Shiny;
 
+const Value Value::EmptyList;
+
 namespace {
   // TODO: Move printing functions to a separate printing API.
   // TODO: Can we switch away from ostream? (perf, less C++ API)
@@ -46,18 +48,18 @@ namespace {
 
     for (const auto c : s) {
       switch (c) {
-      case '\\':
-        os << "\\\\";
-        break;
-      case '"':
-        os << "\\\"";
-        break;
-      case '\n':
-        os << "\\n";
-        break;
-      default:
-        os << c;
-        break;
+        case '\\':
+          os << "\\\\";
+          break;
+        case '"':
+          os << "\\\"";
+          break;
+        case '\n':
+          os << "\\n";
+          break;
+        default:
+          os << c;
+          break;
       }
     }
 
@@ -70,36 +72,36 @@ namespace {
     os << "#\\";
 
     switch (c) {
-    case SpecialChars::kAlarmValue:
-      os << SpecialChars::kAlarmName;
-      break;
-    case SpecialChars::kBackspaceValue:
-      os << SpecialChars::kBackspaceName;
-      break;
-    case SpecialChars::kDeleteValue:
-      os << SpecialChars::kDeleteName;
-      break;
-    case SpecialChars::kEscapeValue:
-      os << SpecialChars::kEscapeName;
-      break;
-    case SpecialChars::kNewlineValue:
-      os << SpecialChars::kNewlineName;
-      break;
-    case SpecialChars::kNullValue:
-      os << SpecialChars::kNullName;
-      break;
-    case SpecialChars::kReturnValue:
-      os << SpecialChars::kReturnName;
-      break;
-    case SpecialChars::kSpaceValue:
-      os << SpecialChars::kSpaceName;
-      break;
-    case SpecialChars::kTabValue:
-      os << SpecialChars::kTabName;
-      break;
-    default:
-      os << c;
-      break;
+      case SpecialChars::kAlarmValue:
+        os << SpecialChars::kAlarmName;
+        break;
+      case SpecialChars::kBackspaceValue:
+        os << SpecialChars::kBackspaceName;
+        break;
+      case SpecialChars::kDeleteValue:
+        os << SpecialChars::kDeleteName;
+        break;
+      case SpecialChars::kEscapeValue:
+        os << SpecialChars::kEscapeName;
+        break;
+      case SpecialChars::kNewlineValue:
+        os << SpecialChars::kNewlineName;
+        break;
+      case SpecialChars::kNullValue:
+        os << SpecialChars::kNullName;
+        break;
+      case SpecialChars::kReturnValue:
+        os << SpecialChars::kReturnName;
+        break;
+      case SpecialChars::kSpaceValue:
+        os << SpecialChars::kSpaceName;
+        break;
+      case SpecialChars::kTabValue:
+        os << SpecialChars::kTabName;
+        break;
+      default:
+        os << c;
+        break;
     }
 
     return os;
@@ -122,33 +124,36 @@ std::string Value::toString() const {
 //--------------------------------------------------------------------------------------------------
 std::ostream& Value::print(std::ostream& os, const Value& v) {
   switch (v.type()) {
-  case ValueType::EmptyList:
-    os << "()";
-    break;
-  case ValueType::Boolean:
-    os << (v.toBool() ? "#t" : "#f");
-    break;
-  case ValueType::Fixnum:
-    os << v.toFixnum();
-    break;
-  case ValueType::Symbol:
-    os << v.toStringView();
-    break;
-  case ValueType::Character:
-    printChar(os, v.toChar());
-    break;
-  case ValueType::String:
-    printString(os, v.toStringView());
-    break;
-  case ValueType::Pair:
-    os << "(";
-    printPair(os, v.toRawPair());
-    os << ")";
-    break;
-  default:
-    throw Exception(
-        "Missing printer support for this type", EXCEPTION_CALLSITE_ARGS);
-    break;
+    case ValueType::EmptyList:
+      os << "()";
+      break;
+    case ValueType::Boolean:
+      os << (v.toBool() ? "#t" : "#f");
+      break;
+    case ValueType::Fixnum:
+      os << v.toFixnum();
+      break;
+    case ValueType::Symbol:
+      os << v.toStringView();
+      break;
+    case ValueType::Character:
+      printChar(os, v.toChar());
+      break;
+    case ValueType::String:
+      printString(os, v.toStringView());
+      break;
+    case ValueType::Pair:
+      os << "(";
+      printPair(os, v.toRawPair());
+      os << ")";
+      break;
+    case ValueType::PrimitiveProcedure:
+      os << "#<procedure>";
+      break;
+    default:
+      throw Exception(
+          "Missing printer support for this type", EXCEPTION_CALLSITE_ARGS);
+      break;
   }
 
   return os;
@@ -164,15 +169,6 @@ std::string_view Shiny::to_string(ValueType valueType) noexcept {
   assert((size_t)valueType < ValueTypeNames.size());
   return ValueTypeNames[(size_t)valueType];
 }
-
-//------------------------------------------------------------------------------
-WrongValueTypeException::WrongValueTypeException(
-    ValueType expectedType,
-    ValueType actualType,
-    EXCEPTION_CALLSITE_PARAMS)
-    : Exception(
-          fmt::format(to_string(expectedType), to_string(actualType)),
-          EXCEPTION_INIT_BASE_ARGS) {}
 
 //--------------------------------------------------------------------------------------------------
 Value Shiny::cons(VmState* vm, Value car, Value cdr) {
@@ -225,8 +221,38 @@ void Shiny::set_cdr(Value pair, Value v) {
     throw WrongValueTypeException(
         ValueType::Pair, pair.type(), EXCEPTION_CALLSITE_ARGS);
   }
+
   auto rawPair = pair.toRawPair();
   assert(rawPair != nullptr);
 
   rawPair->cdr = v;
 }
+
+//--------------------------------------------------------------------------------------------------
+void Shiny::get_pair(Value pair, Value* carOut, Value* cdrOut) {
+  assert(carOut != nullptr);
+  assert(cdrOut != nullptr);
+
+  if (!pair.isPair()) {
+    throw WrongValueTypeException(
+        ValueType::Pair, pair.type(), EXCEPTION_CALLSITE_ARGS);
+  }
+
+  auto rawPair = pair.toRawPair();
+  assert(rawPair != nullptr);
+
+  *carOut = rawPair->car;
+  *cdrOut = rawPair->cdr;
+}
+
+//------------------------------------------------------------------------------
+WrongValueTypeException::WrongValueTypeException(
+    ValueType expectedType,
+    ValueType actualType,
+    EXCEPTION_CALLSITE_PARAMS)
+    : Exception(
+          fmt::format(
+              "Expected value to be of type {} but was {}",
+              to_string(expectedType),
+              to_string(actualType)),
+          EXCEPTION_INIT_BASE_ARGS) {}

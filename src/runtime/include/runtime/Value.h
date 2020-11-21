@@ -9,14 +9,21 @@
 #include <string>
 #include <string_view>
 
+// TODO: Support marking certain types as "const" (like string, pair) so that
+//       const methods can throw an exception when the underlying type is const.
+//       Rationale for this is to prevent procedures from accidently modifying
+//       the AST with recycle optimization.
+
 namespace Shiny {
   class Allocator;
+  class Value;
+  class Environment;
   class VmState;
 
   struct RawString;
   struct RawPair;
 
-  /** Type of value stored in a Value instance. */
+  /** Type of value stored in a Value. */
   enum class ValueType {
     EmptyList,
     Boolean,
@@ -24,44 +31,55 @@ namespace Shiny {
     Symbol,
     Character,
     String,
-    Pair
+    Pair,
+    PrimitiveProcedure
   };
 
-  /** Value type string names. */
-  static constexpr const std::array<const char*, 7> ValueTypeNames = {
+  /** Table of names for ValueType. */
+  static constexpr const std::array<const char*, 8> ValueTypeNames = {
       "EmptyList",
       "Boolean",
       "Fixnum",
       "Symbol",
       "Character",
       "String",
-      "Pair"};
+      "Pair",
+      "PrimitiveProcedure"};
 
-  /** Fixnum type. */
+  /** Fixnum native type. */
   using fixnum_t = int;
+
+  /** Native procedure type. */
+  using procedure_t = Value (*)(Value args, VmState& vmState, Environment& env);
 
   /** A dynamically typed value. */
   class Value {
   public:
-    /** Default constructor creates an empty list value. */
+    /** Initialize as EmptyList. */
     constexpr Value() noexcept : type_(ValueType::EmptyList), fixnum_value(0) {}
 
-    /** Bool constructor. */
+    /** Initialize with a boolean value. */
     explicit constexpr Value(bool value) noexcept
         : type_(ValueType::Boolean),
           bool_value(value) {}
 
-    /** Fixnum constructor. */
+    /** Initialize with a fixnum value. */
     explicit constexpr Value(fixnum_t fixnum) noexcept
         : type_(ValueType::Fixnum),
           fixnum_value(fixnum) {}
 
-    /** Character constructor. */
+    /** Initialize with a character value. */
     explicit constexpr Value(char c) noexcept
         : type_(ValueType::Character),
           char_value(c) {}
 
-    /** String constructor. */
+    /**
+     * Initialize with a string or as symbol value.
+     *
+     * \param rawString A garbage collected (or otherwise externally tracked)
+     *                  string pointer.
+     * \param type      Must be either ValueType::String or ValueType::Symbol.
+     */
     explicit Value(
         RawString* rawString,
         ValueType type = ValueType::String) noexcept
@@ -71,111 +89,166 @@ namespace Shiny {
       assert(type == ValueType::String || type == ValueType::Symbol);
     }
 
-    /** Pair constructor. */
+    /**
+     * Initialize with a pair.
+     *
+     * \param rawPair A garbage collected (or otherwise externally tracked) pair
+     *                pointer.
+     */
     explicit Value(RawPair* rawPair) noexcept
         : type_(ValueType::Pair),
           pair_ptr(rawPair) {
       assert(rawPair != nullptr);
     }
 
+    /** Initialize with a pointer to a native function. */
+    explicit constexpr Value(procedure_t function) noexcept
+        : type_(ValueType::PrimitiveProcedure),
+          procedure_ptr(function) {
+      assert(procedure_ptr != nullptr);
+    }
+
   public:
-    /** Get the type for this value. */
+    /** Get this value's type. */
     constexpr ValueType type() const noexcept { return type_; }
 
-    /** Print value as a string. */
+    /** Get value as a printable string. */
     std::string toString() const;
 
   public:
-    /** Test if value is of type empty list. */
+    /** Test if this value is an empty list. */
     constexpr bool isEmptyList() const noexcept {
       return type_ == ValueType::EmptyList;
     }
 
-    /** Test if value is of type boolean. */
+    /** Test if this value is a boolean. */
     constexpr bool isBoolean() const noexcept {
       return type_ == ValueType::Boolean;
     }
 
-    /** Test if value is of type fixnum. */
+    /** Test if this value is a fixnum. */
     constexpr bool isFixnum() const noexcept {
       return type_ == ValueType::Fixnum;
     }
 
-    /** Test if value is of type symbol. */
+    /** Test if this value is a symbol. */
     constexpr bool isSymbol() const noexcept {
       return type_ == ValueType::Symbol;
     }
 
-    /** Test if value is of type character. */
+    /** Test if this value is a character. */
     constexpr bool isCharacter() const noexcept {
       return type_ == ValueType::Character;
     }
 
-    /** Test if value is of type string. */
+    /** Test if this value is a string. */
     constexpr bool isString() const noexcept {
       return type_ == ValueType::String;
     }
 
-    /** Test if value is of type pair. */
+    /** Test if this value is a pair. */
     constexpr bool isPair() const noexcept { return type_ == ValueType::Pair; }
 
-  public:
-    /** Convert to fixnum integer value. Undefined behavior if not a fixnum. */
-    constexpr fixnum_t toFixnum() const noexcept { return fixnum_value; }
+    /** Test if this value is a primitive procedure. */
+    constexpr bool isPrimitiveProcedure() const noexcept {
+      return type_ == ValueType::PrimitiveProcedure;
+    }
 
-    /** Convert to a boolean value. Undefined behavior if not a boolean. */
-    constexpr bool toBool() const noexcept { return bool_value; }
-
-    /** Convert to a boolean value. Undefined behavior if not a boolean. */
-    constexpr char toChar() const noexcept { return char_value; }
-
-    /**
-     * Convert to a string_view. Undefined behavior if not a string or a symbol.
-     */
-    std::string_view toStringView() const;
-
-    /** Convert to raw pair pointer. Undefined behavior if not a pair. */
-    RawPair* toRawPair() const noexcept { return pair_ptr; }
-
-  public:
-    /** Test if value is false. */
+    /** Test if this value is considered false. */
     constexpr bool isFalse() const noexcept {
       return isBoolean() && !bool_value;
     }
 
-    /** Test if value is true (Scheme true is any value that is not false). */
+    /** Test if this value is a considered true. */
     constexpr bool isTrue() const noexcept { return !isFalse(); }
 
   public:
-    static std::ostream& print(std::ostream& os, const Value& v);
+    /**
+     * Returns this value as an integer.
+     * This method has undefined behavior if it is not a fixnum type.
+     */
+    constexpr fixnum_t toFixnum() const noexcept { return fixnum_value; }
+
+    /**
+     * Returns this value as a bool.
+     * This method has undefined behavior if it is not a bool type.
+     */
+    constexpr bool toBool() const noexcept { return bool_value; }
+
+    /**
+     * Returns this value as a character.
+     * This method has undefined behavior if it is not a character type.
+     */
+    constexpr char toChar() const noexcept { return char_value; }
+
+    /**
+     * Returns this value as a string_view.
+     * This method has undefined behavior if it is not convertible to a string
+     * type (e.g., strings, symbols).
+     */
+    std::string_view toStringView() const;
+
+    /**
+     * Returns this value as a raw pair.
+     * This method has undefined behavior if it is not a pair type.
+     */
+    RawPair* toRawPair() const noexcept { return pair_ptr; }
+
+    /**
+     * Returns this value as a primitive procedure pointer.
+     * This method has undefined behavior if it is not a primitive procedure
+     * type.
+     */
+    procedure_t toPrimitiveProcedure() const noexcept { return procedure_ptr; }
 
   public:
-    /** Value equality operator. */
+    /**
+     * Equality operator.
+     * Follows the equality rules set forth in the Scheme R7RS standard for eq?,
+     * and are reproduced here as follows:
+     *
+     * 1. Values are never equal if their types are not equal.
+     * 2. Numbers, characters and bools are equal if their values are equal.
+     * 3. EmptyList is equal to any other EmptyList.
+     * 4. Pairs, Strings, Symbols and PrimitiveProcedures are equal only if the
+     *    underlying pointer used to initialize the Value are identical.
+     */
     bool operator==(const Value& rhs) const noexcept {
       if (type_ != rhs.type_) {
         return false;
       } else {
         switch (type_) {
-        case ValueType::EmptyList:
-          return true;
-        case ValueType::Boolean:
-          return bool_value == rhs.bool_value;
-        case ValueType::Fixnum:
-          return fixnum_value == rhs.fixnum_value;
-        case ValueType::Character:
-          return char_value == rhs.char_value;
-        case ValueType::Symbol:
-        case ValueType::String:
-          return string_ptr == rhs.string_ptr;
-        default:
-          assert(false && "Value == operator missing support type");
-          return false;
+          case ValueType::EmptyList:
+            return true;
+          case ValueType::Boolean:
+            return bool_value == rhs.bool_value;
+          case ValueType::Fixnum:
+            return fixnum_value == rhs.fixnum_value;
+          case ValueType::Character:
+            return char_value == rhs.char_value;
+          case ValueType::Symbol:
+          case ValueType::String:
+            return string_ptr == rhs.string_ptr;
+          case ValueType::PrimitiveProcedure:
+            return procedure_ptr == rhs.procedure_ptr;
+          case ValueType::Pair:
+            return pair_ptr == rhs.pair_ptr;
+          default:
+            assert(false && "Value == operator missing support type");
+            return false;
         }
       }
     }
 
     /** Inequality operator. */
     bool operator!=(const Value& rhs) const noexcept { return !(*this == rhs); }
+
+  public:
+    /** Read only field to get the default EmptyList value. */
+    static const Value EmptyList;
+
+    /** Print the Value to an output stream. */
+    static std::ostream& print(std::ostream& os, const Value& v);
 
   private:
     ValueType type_ = ValueType::EmptyList;
@@ -185,6 +258,7 @@ namespace Shiny {
       char char_value;
       RawString* string_ptr;
       RawPair* pair_ptr;
+      procedure_t procedure_ptr;
     };
   };
 
@@ -227,12 +301,6 @@ namespace Shiny {
         EXCEPTION_CALLSITE_PARAMS);
   };
 
-  // ------------------------------------------------------------------------ //
-  // C style API for dealing with values.
-  // TODO: Change from exceptions to something C compatible (error type?).
-  // TODO: Finish C API, add tests.
-  // TODO: Move to RuntimeApi.h
-
   /** Get string name for value type. */
   std::string_view to_string(ValueType valueType) noexcept;
 
@@ -251,4 +319,35 @@ namespace Shiny {
   /** Set the cdr of a pair (or throw an exception if value is not a pair). */
   void set_cdr(Value pair, Value v);
 
+  /** Get car and cdr of pair in one function call. */
+  void get_pair(Value pair, Value* carOut, Value* cdrOut);
+
+  inline Value caar(Value obj) { return car(car(obj)); }
+  inline Value cadr(Value obj) { return car(cdr(obj)); }
+  inline Value cdar(Value obj) { return cdr(car(obj)); }
+  inline Value cddr(Value obj) { return cdr(cdr(obj)); }
+  inline Value caaar(Value obj) { return car(car(car(obj))); }
+  inline Value caadr(Value obj) { return car(car(cdr(obj))); }
+  inline Value cadar(Value obj) { return car(cdr(car(obj))); }
+  inline Value caddr(Value obj) { return car(cdr(cdr(obj))); }
+  inline Value cdaar(Value obj) { return cdr(car(car(obj))); }
+  inline Value cdadr(Value obj) { return cdr(car(cdr(obj))); }
+  inline Value cddar(Value obj) { return cdr(cdr(car(obj))); }
+  inline Value cdddr(Value obj) { return cdr(cdr(cdr(obj))); }
+  inline Value caaaar(Value obj) { return car(car(car(car(obj)))); }
+  inline Value caaadr(Value obj) { return car(car(car(cdr(obj)))); }
+  inline Value caadar(Value obj) { return car(car(cdr(car(obj)))); }
+  inline Value caaddr(Value obj) { return car(car(cdr(cdr(obj)))); }
+  inline Value cadaar(Value obj) { return car(cdr(car(car(obj)))); }
+  inline Value cadadr(Value obj) { return car(cdr(car(cdr(obj)))); }
+  inline Value caddar(Value obj) { return car(cdr(cdr(car(obj)))); }
+  inline Value cadddr(Value obj) { return car(cdr(cdr(cdr(obj)))); }
+  inline Value cdaaar(Value obj) { return cdr(car(car(car(obj)))); }
+  inline Value cdaadr(Value obj) { return cdr(car(car(cdr(obj)))); }
+  inline Value cdadar(Value obj) { return cdr(car(cdr(car(obj)))); }
+  inline Value cdaddr(Value obj) { return cdr(car(cdr(cdr(obj)))); }
+  inline Value cddaar(Value obj) { return cdr(cdr(car(car(obj)))); }
+  inline Value cddadr(Value obj) { return cdr(cdr(car(cdr(obj)))); }
+  inline Value cdddar(Value obj) { return cdr(cdr(cdr(car(obj)))); }
+  inline Value cddddr(Value obj) { return cdr(cdr(cdr(cdr(obj)))); }
 } // namespace Shiny

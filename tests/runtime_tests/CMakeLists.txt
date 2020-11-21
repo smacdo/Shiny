@@ -1,16 +1,20 @@
 project(test-shiny-runtime)
 
 add_executable(test-shiny-runtime
+    support/TestHelpers.cpp
     TestMain.cpp
     CharacterStreamTests.cpp
     FreeListAllocatorTests.cpp
     EnvironmentTests.cpp
+    EvaluatorProcedureTests.cpp
     EvaluatorTests.cpp
     ExceptionTests.cpp
     MallocAllocatorTests.cpp
     RawStringTests.cpp
     ReaderTests.cpp
+    RuntimeApiTests.cpp
     SExpressionTests.cpp
+    ValueApiTests.cpp
     ValueTests.cpp
     VmStateTests.cpp
 )

@@ -19,17 +19,19 @@ namespace Shiny {
     ~Evaluator();
 
     /** Evaluate expression and return result. */
-    Shiny::Value evaluate(Shiny::Value expression);
+    Value evaluate(Value expression);
 
     /** Check if a value is self-evaluating. */
-    static bool isSelfEvaluating(Shiny::Value value);
+    static bool isSelfEvaluating(Value value);
 
   private:
-    Shiny::Value ifProc(Shiny::Value arguments, VmState& vm);
+    Value evaluateArgumentList(Value args, Environment& env);
 
-    static Shiny::Value defineProc(Shiny::Value arguments, VmState& vm);
-    static Shiny::Value quoteProc(Shiny::Value arguments, VmState& vm);
-    static Shiny::Value setProc(Shiny::Value arguments, VmState& vm);
+    Value ifProc(Value arguments, VmState& vm);
+
+    static Value defineProc(Value arguments, VmState& vm);
+    static Value quoteProc(Value arguments, VmState& vm);
+    static Value setProc(Value arguments, VmState& vm);
 
   private:
     std::shared_ptr<VmState> vmState_;

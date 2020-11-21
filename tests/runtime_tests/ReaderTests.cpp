@@ -3,22 +3,12 @@
 #include "runtime/VmState.h"
 #include "runtime/allocators/MallocAllocator.h"
 
+#include "support/TestHelpers.h"
+
 #include <catch2/catch.hpp>
+#include <string_view>
 
 using namespace Shiny;
-
-namespace {
-  Value read(std::string_view input, std::shared_ptr<VmState> vmState) {
-    Reader r{vmState};
-    return r.read(input);
-  }
-
-  Value read(std::string_view input) {
-    auto vmState =
-        std::make_shared<VmState>(std::make_unique<MallocAllocator>());
-    return read(input, vmState);
-  }
-} // namespace
 
 TEST_CASE("Can read fixnums", "[Reader]") {
   REQUIRE(Value{0} == read("0"));
