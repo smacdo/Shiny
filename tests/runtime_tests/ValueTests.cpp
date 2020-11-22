@@ -388,8 +388,8 @@ TEST_CASE("Pairs", "[Value]") {
   }
 }
 
-Value testProc1(Value, VmState&, Environment&) { return Value{2}; }
-Value testProc2(Value, VmState&, Environment&) { return Value{2}; }
+Value testProc1(ArgList&, VmState&, Environment&) { return Value{2}; }
+Value testProc2(ArgList&, VmState&, Environment&) { return Value{2}; }
 
 TEST_CASE("Primitive procedure values", "[Value]") {
   Value a{&testProc1};

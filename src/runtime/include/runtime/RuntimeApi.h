@@ -9,24 +9,32 @@ namespace Shiny {
   enum class PopArgResult {
     Ok,               ///< Argument was succesfully popped.
     EmptyArgList,     ///< Argument list was empty.
-    WrongArgListType, ///< Argument list is wrong type (requires pair).
     WrongArgValueType ///< Popped argument type did not match expected.
+  };
+
+  /** List of evaluated arguments passed to called procedure. */
+  struct ArgList {
+    ArgList();
+    ArgList(Value args);
+
+    Value next;      ///< Next unpopped argument in list.
+    size_t popCount; ///< Number of arguments popped - modified by RuntimeAPI.
   };
 
   /** Argument value type does not match expected type. */
   class WrongArgTypeException : public Exception {
   public:
     WrongArgTypeException(
+        size_t argumentIndex,
         ValueType expectedType,
         ValueType actualType,
         EXCEPTION_CALLSITE_PARAMS);
   };
 
   /** Expected argument but argument list was empty. */
-  // TODO: Consider renaming this to ArgumentMissingException.
-  class ArgumentListEmptyException : public Exception {
+  class ArgumentMissingException : public Exception {
   public:
-    ArgumentListEmptyException(EXCEPTION_CALLSITE_PARAMS);
+    ArgumentMissingException(size_t argumentIndex, EXCEPTION_CALLSITE_PARAMS);
   };
 
   /**
@@ -38,16 +46,13 @@ namespace Shiny {
    * a failed type check causes this function to throw.S
    *
    * \param args         Argument list to pop.
-   * \param resultOut    Required. Receives the value of popped argument.
-   * \param argsTailOut  Optional, receives the remainder of the popped
-   *                     argument list.
+   * \param argOut       Receives the value of the popped argument.
    * \param expectedType The expected value type for the popped argument.
    * \returns The popped argument value.
    */
   bool tryPopArgument(
-      Value args,
-      Value* resultOut,
-      Value* argsTailOut = nullptr,
+      ArgList& args,
+      Value* argOut,
       std::optional<ValueType> expectedType = std::nullopt);
 
   /**
@@ -55,14 +60,11 @@ namespace Shiny {
    * the requested type otherwise throws an exception.
    *
    * \param args         Argument list to pop.
-   * \param argsTailOut  Optional, receives the remainder of the popped
-   *                     argument list.
    * \param expectedType The expected value type for the popped argument.
    * \returns The popped argument value.
    */
   Value popArgumentOrThrow( // TODO: Not sure how useful this method is...
-      Value args,
-      Value* argsTailOut = nullptr,
+      ArgList& args,
       std::optional<ValueType> expectedType = std::nullopt);
 
   /**
@@ -71,19 +73,15 @@ namespace Shiny {
    *
    * Type checking will be performed if the `expectedType` parameter is set to
    * any value other than nullopt. If the next argument does not the expected
-   * type this function will still set `resultOut` and `argsTailOut` but it will
-   * return `WrongArgValueType` error instead of `Ok`.
+   * type this function will still move the arglist to the next argument.
    *
    * \param args         Argument list to pop.
-   * \param resultOut    Optional, receives the value of popped argument.
-   * \param argsTailOut  Optional, receives the remainder of the popped
-   *                     argument list.
+   * \param argOut       Optional. Receives the value of the popped argument.
    * \param expectedType The expected value type for the popped argument.
-   * \returns True if there was an argument to pop, false otherwise.
+   * \returns Status of the pop action.
    */
   PopArgResult popArgument(
-      Value args,
-      Value* resultOut,
-      Value* argsTailOut,
+      ArgList& args,
+      Value* argOut,
       std::optional<ValueType> expectedType = std::nullopt);
 } // namespace Shiny

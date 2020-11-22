@@ -1,19 +1,13 @@
-#include "runtime/Evaluator.h"
+#include "support/EvaluatorFixture.h"
 
-#include "runtime/Reader.h"
+#include "runtime/Evaluator.h"
 #include "runtime/RuntimeApi.h"
 #include "runtime/Value.h"
 #include "runtime/VmState.h"
-#include "runtime/allocators/MallocAllocator.h"
 
 #include "support/TestHelpers.h"
 
 #include <catch2/catch.hpp>
-
-#include <iostream>
-
-#include <map>
-#include <string>
 
 using namespace Shiny;
 
@@ -21,79 +15,59 @@ namespace {
   constexpr const char* kTestCounterProc = "test-counter";
   constexpr const char* kTestUpProc = "test-up";
   constexpr const char* kTestAdd2Proc = "test-add2";
+  constexpr const char* kTestTryModParamProc = "test-mod-param";
+  constexpr const char* kTestTryModPairProc = "test-mod-pair";
 } // namespace
 
-class EvaluatorTestFixture {
+class EvaluatorProcedureFixture : public EvaluatorFixture {
 protected:
-  static std::map<std::string, int> procCallCounter;
-  std::shared_ptr<VmState> vmState_;
-
 public:
-  EvaluatorTestFixture()
-      : vmState_(
-            std::make_shared<VmState>(std::make_unique<MallocAllocator>())) {
-    procCallCounter.clear();
-
+  EvaluatorProcedureFixture() : EvaluatorFixture() {
     defineProc(kTestCounterProc, &testCounter_proc);
     defineProc(kTestUpProc, &testUp_proc);
     defineProc(kTestAdd2Proc, &testAdd2_proc);
+    defineProc(kTestTryModParamProc, &testTryModParam_proc);
+    defineProc(kTestTryModPairProc, &testTryModPair_proc);
   }
 
 protected:
-  VmState& vmState() { return *vmState_.get(); }
-
-  Value evaluate(std::string_view code) {
-    return Shiny::evaluate(code, vmState_);
-  }
-
-  void defineProc(const std::string& name, procedure_t proc) {
-    REQUIRE(nullptr != proc);
-
-    // define call counter.
-    REQUIRE(procCallCounter.find(name) == procCallCounter.end());
-    procCallCounter[name] = 0;
-
-    // register.
-    vmState_->environment().defineVariable(
-        vmState_->makeSymbol(name), Value{proc});
-  }
-
-protected:
-  static int getProcCallCount(const std::string& name) {
-    return procCallCounter.at(name);
-  }
-
-private:
-  static void incProcCallCount(const std::string& name) {
-    procCallCounter.at(name) += 1;
-  }
-
-protected:
-  static Value testCounter_proc(Value, VmState&, Environment&) {
+  static Value testCounter_proc(ArgList&, VmState&, Environment&) {
     incProcCallCount(kTestCounterProc);
     return Value{42};
   }
 
-  static Value testUp_proc(Value args, VmState&, Environment&) {
+  static Value testUp_proc(ArgList& args, VmState&, Environment&) {
     incProcCallCount(kTestUpProc);
-    auto arg = popArgumentOrThrow(args, nullptr, ValueType::Character);
+    auto arg = popArgumentOrThrow(args, ValueType::Character);
     char c = std::toupper(arg.toChar());
     auto result = Value{c};
     return result;
   }
 
-  static Value testAdd2_proc(Value args, VmState&, Environment&) {
+  static Value testAdd2_proc(ArgList& args, VmState&, Environment&) {
     incProcCallCount(kTestAdd2Proc);
-    auto a = popArgumentOrThrow(args, &args, ValueType::Fixnum);
-    auto b = popArgumentOrThrow(args, &args, ValueType::Fixnum);
+    auto a = popArgumentOrThrow(args, ValueType::Fixnum);
+    auto b = popArgumentOrThrow(args, ValueType::Fixnum);
     return Value{a.toFixnum() + b.toFixnum()};
+  }
+
+  static Value testTryModParam_proc(ArgList& args, VmState&, Environment&) {
+    incProcCallCount(kTestTryModParamProc);
+    auto a = popArgumentOrThrow(args, ValueType::Fixnum);
+    a = Value{a.toFixnum() + 1};
+    return a;
+  }
+
+  static Value testTryModPair_proc(ArgList& args, VmState&, Environment&) {
+    incProcCallCount(kTestTryModPairProc);
+    auto a = popArgumentOrThrow(args, ValueType::Pair);
+    set_car(a, Value{2222});
+    return Value{1};
   }
 };
 
-std::map<std::string, int> EvaluatorTestFixture::procCallCounter;
-
 TEST_CASE_METHOD(
-    EvaluatorTestFixture,
+    EvaluatorProcedureFixture,
     "Can call simple no argument procedure",
     "[Evaluator]") {
   REQUIRE(0 == getProcCallCount(kTestCounterProc));
@@ -106,7 +80,7 @@ TEST_CASE_METHOD(
 }
 
 TEST_CASE_METHOD(
-    EvaluatorTestFixture,
+    EvaluatorProcedureFixture,
     "Can call procedure with single argument and receive return value",
     "[Evaluator]") {
   REQUIRE(0 == getProcCallCount(kTestUpProc));
@@ -119,7 +93,7 @@ TEST_CASE_METHOD(
 }
 
 TEST_CASE_METHOD(
-    EvaluatorTestFixture,
+    EvaluatorProcedureFixture,
     "Can call procedure with two arguments and receive return value",
     "[Evaluator]") {
   REQUIRE(0 == getProcCallCount(kTestAdd2Proc));
@@ -132,7 +106,17 @@ TEST_CASE_METHOD(
 }
 
 TEST_CASE_METHOD(
-    EvaluatorTestFixture,
+    EvaluatorProcedureFixture,
+    "Arguments are evaluated before calling procedure",
+    "[Evaluator]") {
+  vmState_->environment().defineVariable(vmState_->makeSymbol("a"), Value{10});
+  vmState_->environment().defineVariable(vmState_->makeSymbol("b"), Value{2});
+
+  REQUIRE(Value{12} == evaluate("(test-add2 a b)"));
+}
+
+TEST_CASE_METHOD(
+    EvaluatorProcedureFixture,
     "Throws exception if procedure does not exist",
     "[Evaluator]") {
   auto fn = [this]() { evaluate("(does-not-exit)"); };
@@ -140,7 +124,7 @@ TEST_CASE_METHOD(
 }
 
 TEST_CASE_METHOD(
-    EvaluatorTestFixture,
+    EvaluatorProcedureFixture,
     "Throws exception if operator not a procedure",
     "[Evaluator]") {
   vmState_->environment().defineVariable(
@@ -150,7 +134,7 @@ TEST_CASE_METHOD(
 }
 
 TEST_CASE_METHOD(
-    EvaluatorTestFixture,
+    EvaluatorProcedureFixture,
     "Throws exception if argument type is not expected",
     "[Evaluator]") {
   auto fn = [this]() { evaluate("(test-up 2)"); };
@@ -158,26 +142,38 @@ TEST_CASE_METHOD(
 }
 
 TEST_CASE_METHOD(
-    EvaluatorTestFixture,
+    EvaluatorProcedureFixture,
     "Throws exception if too few arguments provided",
     "[Evaluator]") {
   auto fn = [this]() { evaluate("(test-add2 2)"); };
-  REQUIRE_THROWS_AS(fn(), ArgumentListEmptyException);
+  REQUIRE_THROWS_AS(fn(), ArgumentMissingException);
 }
 
-// TODO: Too few arguments => error.
-// TODO: Demonstrate that argument cannot be modified.
-// TODO: Demonstrate that argument pair car/cdr could be changed.
+TEST_CASE_METHOD(
+    EvaluatorProcedureFixture,
+    "Throws exception if too too many arguments provided",
+    "[Evaluator]") {
+  auto fn = [this]() { evaluate("(test-add2 2 1 5)"); };
+  REQUIRE_THROWS_AS(fn(), ArgCountMismatch);
+}
 
-TEST_CASE_METHOD(EvaluatorTestFixture, "Add procedure", "[Evaluator]") {
-  SECTION("sums all passed fixnums") {
-    REQUIRE(Value{0} == evaluate("(+)"));
-    REQUIRE(Value{4} == evaluate("(+ 1 3)"));
-    REQUIRE(Value{12} == evaluate("(+ 10 5 1 -4)"));
-  }
+TEST_CASE_METHOD(
+    EvaluatorProcedureFixture,
+    "Cannot modify atomic values when passed to a function",
+    "[Evaluator]") {
+  vmState_->environment().defineVariable(vmState_->makeSymbol("a"), Value{10});
+  evaluate("(test-mod-param a)");
+  auto a = vmState_->environment().lookupVariable(vmState_->makeSymbol("a"));
+  REQUIRE(10 == a.toFixnum());
+}
 
-  SECTION("error if any argument is not a fixnum") {
-    auto fn = [this]() { evaluate("(+ 10 1 #t)"); };
-    REQUIRE_THROWS_AS(fn(), WrongArgTypeException);
-  }
+TEST_CASE_METHOD(
+    EvaluatorProcedureFixture,
+    "Arguments are shallow copied when evaluated",
+    "[Evaluator]") {
+  vmState_->environment().defineVariable(
+      vmState_->makeSymbol("a"), vmState_->makePair(Value{-5}, Value{6}));
+  evaluate("(test-mod-pair a)");
+  auto a = vmState_->environment().lookupVariable(vmState_->makeSymbol("a"));
+  REQUIRE(2222 == a.toRawPair()->car.toFixnum());
 }

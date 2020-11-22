@@ -1,6 +1,7 @@
 #include "runtime/Evaluator.h"
 
 #include "runtime/Procedures.h"
+#include "runtime/RuntimeApi.h"
 #include "runtime/VmState.h"
 
 #include <fmt/format.h>
@@ -74,14 +75,34 @@ tailcall:
 
       // Evaluate formal arguments to get a "real" arguments list to pass to the
       // procedure.
-      auto argValues = evaluateArgumentList(args, vmState_->environment());
+      size_t argCount = 0;
+      auto argValues =
+          evaluateArgumentList(args, vmState_->environment(), &argCount);
       assert(argValues.isPair() || argValues.isEmptyList());
 
-      // Invoke the procedure and return the result.
+      // Construct argument list which allows us to track how many arguments
+      // have been used by the invoked procedure.
+      ArgList arglist;
+
+      arglist.next = argValues;
+      arglist.popCount = 0;
+
+      // Invoke the procedure and keep the result.
       auto func = procedure.toPrimitiveProcedure();
       assert(func != nullptr);
 
-      return func(argValues, *vmState_.get(), vmState_->environment());
+      auto result = func(arglist, *vmState_.get(), vmState_->environment());
+
+      // Double check that the invoked procedure actually used all the arguments
+      // that it was passed. Once checked return the result of the invoked
+      // procedure call.
+      if (arglist.popCount != argCount) {
+        // TODO: Unify this exception with ArgumentMissingException.
+        throw ArgCountMismatch(
+            arglist.popCount, argCount, EXCEPTION_CALLSITE_ARGS);
+      }
+
+      return result;
     }
   } else {
     // Oops, don't know what to do with this...
@@ -105,10 +126,17 @@ bool Evaluator::isSelfEvaluating(Value value) {
 }
 
 //------------------------------------------------------------------------------
-Value Evaluator::evaluateArgumentList(Value args, Environment& env) {
+Value Evaluator::evaluateArgumentList(
+    Value args,
+    Environment& env,
+    size_t* argCount) {
+  assert(argCount != nullptr);
+
   if (args.isEmptyList()) {
     return args;
   } else {
+    *argCount += 1;
+
     // Generate a new argument list by evaluating each element of the passed
     // argument list.
     // TODO: Can we optimize this and not allocate a new cell for each arg?
@@ -116,7 +144,7 @@ Value Evaluator::evaluateArgumentList(Value args, Environment& env) {
     return cons(
         vmState_.get(),
         evaluate(car(args)),
-        evaluateArgumentList(cdr(args), env));
+        evaluateArgumentList(cdr(args), env, argCount));
   }
 }
 
@@ -178,3 +206,15 @@ Value Evaluator::setProc(Value arguments, VmState& vmState) {
   vmState.environment().setVariable(varName, varValue);
   return varValue;
 }
+
+//==============================================================================
+ArgCountMismatch::ArgCountMismatch(
+    size_t expectedCount,
+    size_t actualCount,
+    EXCEPTION_CALLSITE_PARAMS)
+    : Exception(
+          fmt::format(
+              "Expected {} arguments but {} arguments were passed",
+              expectedCount,
+              actualCount),
+          EXCEPTION_INIT_BASE_ARGS) {}

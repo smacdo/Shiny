@@ -7,41 +7,67 @@
 
 using namespace Shiny;
 
+TEST_CASE(
+    "Constructing arg list throws exception if not pair",
+    "[RuntimeApi]") {
+  auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
+
+  SECTION("with empty list is OK") {
+    ArgList args{Value::EmptyList};
+    REQUIRE(args.next.isEmptyList());
+  }
+
+  SECTION("with pair is OK") {
+    ArgList args{vmState->makePair(Value{4}, Value{})};
+    REQUIRE(Value{4} == args.next.toRawPair()->car);
+  }
+
+  SECTION("with not pair or empty list") {
+    auto fn1 = []() { ArgList{Value{42}}; };
+    REQUIRE_THROWS_AS(fn1(), WrongValueTypeException);
+
+    auto fn2 = []() { ArgList{Value{true}}; };
+    REQUIRE_THROWS_AS(fn2(), WrongValueTypeException);
+  }
+}
+
 TEST_CASE("Popping empty argument list", "[RuntimeApi]") {
   auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
 
+  ArgList args{Value::EmptyList};
+
   SECTION("returns empty list error") {
-    auto status = popArgument({}, nullptr, nullptr);
+    auto status = popArgument(args, nullptr);
     REQUIRE(PopArgResult::EmptyArgList == status);
   }
 
   SECTION("with type hint returns empty list error") {
-    auto status = popArgument({}, nullptr, nullptr, ValueType::EmptyList);
+    auto status = popArgument(args, nullptr, ValueType::EmptyList);
     REQUIRE(PopArgResult::EmptyArgList == status);
 
-    status = popArgument({}, nullptr, nullptr, ValueType::Fixnum);
+    status = popArgument(args, nullptr, ValueType::Fixnum);
     REQUIRE(PopArgResult::EmptyArgList == status);
   }
 
   SECTION("tryPop returns false with no exception thrown") {
-    Value v;
-    auto status = tryPopArgument({}, &v, nullptr);
+    auto status = tryPopArgument(args, nullptr);
     REQUIRE_FALSE(status);
   }
 
   SECTION("with orThrow throws an exception") {
-    auto fn = []() { popArgumentOrThrow({}, nullptr); };
-    REQUIRE_THROWS_AS(fn(), ArgumentListEmptyException);
+    auto fn = [&args]() { popArgumentOrThrow(args); };
+    REQUIRE_THROWS_AS(fn(), ArgumentMissingException);
   }
 }
 
 TEST_CASE("Popping arguments from single argument list", "[RuntimeApi]") {
   auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
-  auto argList = vmState->makePair(Value{4}, Value{});
+
+  ArgList args{vmState->makePair(Value{4}, Value{})};
 
   SECTION("sets the argument value in out parameter") {
     Value value;
-    auto status = popArgument(argList, &value, nullptr);
+    auto status = popArgument(args, &value);
 
     REQUIRE(PopArgResult::Ok == status);
     REQUIRE(Value{4} == value);
@@ -49,206 +75,256 @@ TEST_CASE("Popping arguments from single argument list", "[RuntimeApi]") {
 
   SECTION("sets the argument value in out parameter when using tryPop") {
     Value value;
-    REQUIRE(tryPopArgument(argList, &value, nullptr));
+    REQUIRE(tryPopArgument(args, &value));
     REQUIRE(Value{4} == value);
   }
 
   SECTION("returns true when using tryPop") {
     Value value;
-    REQUIRE(tryPopArgument(argList, &value, nullptr));
+    REQUIRE(tryPopArgument(args, &value));
     REQUIRE(Value{4} == value);
   }
 
   SECTION("argument value out is optional") {
-    auto status = popArgument(argList, nullptr, nullptr);
+    auto status = popArgument(args, nullptr);
     REQUIRE(PopArgResult::Ok == status);
   }
 
   SECTION("returns the argument value when using orThrow") {
-    Value status = popArgumentOrThrow(argList, nullptr);
+    Value status = popArgumentOrThrow(args);
     REQUIRE(Value{4} == status);
-  }
-}
-
-TEST_CASE("Get the argument tail from a single argument list", "[RuntimeApi]") {
-  auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
-  auto argList = vmState->makePair(Value{4}, Value{});
-
-  SECTION("sets the argument tail in out parameter") {
-    Value argTail;
-    auto status = popArgument(argList, nullptr, &argTail);
-
-    REQUIRE(PopArgResult::Ok == status);
-    REQUIRE(Value::EmptyList == argTail);
-
-    Value v;
-    REQUIRE(tryPopArgument(argList, &v, &argTail));
-    REQUIRE(Value::EmptyList == argTail);
-  }
-
-  SECTION("argument tail out is optional") {
-    auto status = popArgument(argList, nullptr, nullptr);
-    REQUIRE(PopArgResult::Ok == status);
-
-    Value v;
-    REQUIRE(tryPopArgument(argList, &v, nullptr));
-  }
-
-  SECTION("sets the argument tail in out parameter when using orThrow") {
-    Value argTail;
-    popArgumentOrThrow(argList, &argTail);
-    REQUIRE(Value::EmptyList == argTail);
-  }
-
-  SECTION("argument tail out is optional when using orThrow") {
-    popArgumentOrThrow(argList, nullptr);
   }
 }
 
 TEST_CASE("Get all arguments from argument list", "[RuntimeApi]") {
   auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
-  auto argList = vmState->makePair(
+  ArgList args{vmState->makePair(
       Value{'h'},
-      vmState->makePair(Value{'i'}, vmState->makePair(Value{-2}, Value{})));
+      vmState->makePair(Value{'i'}, vmState->makePair(Value{-2}, Value{})))};
 
   Value value;
-  Value argTail;
 
   SECTION("using popArgument") {
     // First argument 'h'.
-    auto status = popArgument(argList, &value, &argTail);
+    auto status = popArgument(args, &value);
 
     REQUIRE(PopArgResult::Ok == status);
     REQUIRE(Value{'h'} == value);
 
     // Second argument 'i'.
-    status = popArgument(argTail, &value, &argTail);
+    status = popArgument(args, &value);
 
     REQUIRE(PopArgResult::Ok == status);
     REQUIRE(Value{'i'} == value);
 
     // Third (last) argument -2.
-    status = popArgument(argTail, &value, &argTail);
+    status = popArgument(args, &value);
 
     REQUIRE(PopArgResult::Ok == status);
     REQUIRE(Value{-2} == value);
 
     // All future accesses should fail with EmptyArgList. Try twice to make sure
     // no funny business is going on when the end is reached.
-    status = popArgument(argTail, &value, &argTail);
+    status = popArgument(args, &value);
     REQUIRE(PopArgResult::EmptyArgList == status);
 
-    status = popArgument(argTail, &value, &argTail);
+    status = popArgument(args, &value);
     REQUIRE(PopArgResult::EmptyArgList == status);
   }
 
   SECTION("using tryPopArgument") {
     // First argument 'h'.
-    REQUIRE(tryPopArgument(argList, &value, &argTail));
+    REQUIRE(tryPopArgument(args, &value));
     REQUIRE(Value{'h'} == value);
 
     // Second argument 'i'.
-    REQUIRE(tryPopArgument(argTail, &value, &argTail));
+    REQUIRE(tryPopArgument(args, &value));
     REQUIRE(Value{'i'} == value);
 
     // Third (last) argument -2.
-    REQUIRE(tryPopArgument(argTail, &value, &argTail));
+    REQUIRE(tryPopArgument(args, &value));
     REQUIRE(Value{-2} == value);
 
     // All future accesses should fail with EmptyArgList. Try twice to make sure
     // no funny business is going on when the end is reached.
-    REQUIRE_FALSE(tryPopArgument(argTail, &value, &argTail));
-    REQUIRE_FALSE(tryPopArgument(argTail, &value, &argTail));
+    REQUIRE_FALSE(tryPopArgument(args, &value));
+    REQUIRE_FALSE(tryPopArgument(args, &value));
   }
 
   SECTION("with orThrow") {
     // First argument 'h'.
-    value = popArgumentOrThrow(argList, &argTail);
+    value = popArgumentOrThrow(args);
     REQUIRE(Value{'h'} == value);
 
     // Second argument 'i'.
-    value = popArgumentOrThrow(argTail, &argTail);
+    value = popArgumentOrThrow(args);
     REQUIRE(Value{'i'} == value);
 
     // Third (last) argument -2.
-    value = popArgumentOrThrow(argTail, &argTail);
+    value = popArgumentOrThrow(args);
     REQUIRE(Value{-2} == value);
 
     // All future accesses should fail with EmptyArgList. Try twice to make sure
     // no funny business is going on when the end is reached.
-    auto fn = [&argTail]() { popArgumentOrThrow(argTail, &argTail); };
+    auto fn = [&args]() { popArgumentOrThrow(args); };
 
-    REQUIRE_THROWS_AS(fn(), ArgumentListEmptyException);
-    REQUIRE(argTail.isEmptyList());
+    REQUIRE_THROWS_AS(fn(), ArgumentMissingException);
+    REQUIRE_THROWS_AS(fn(), ArgumentMissingException);
+  }
+}
 
-    REQUIRE_THROWS_AS(fn(), ArgumentListEmptyException);
-    REQUIRE(argTail.isEmptyList());
+TEST_CASE("Tracks the number of arguments popped", "[RuntimeApi]") {
+  auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
+  ArgList args{vmState->makePair(
+      Value{'h'},
+      vmState->makePair(Value{'i'}, vmState->makePair(Value{-2}, Value{})))};
+
+  SECTION("when using pop") {
+    REQUIRE(0 == args.popCount);
+
+    REQUIRE(PopArgResult::Ok == popArgument(args, nullptr));
+    REQUIRE(1 == args.popCount);
+
+    REQUIRE(PopArgResult::Ok == popArgument(args, nullptr));
+    REQUIRE(2 == args.popCount);
+
+    REQUIRE(PopArgResult::Ok == popArgument(args, nullptr));
+    REQUIRE(3 == args.popCount);
+  }
+
+  SECTION("when using tryPop") {
+    REQUIRE(0 == args.popCount);
+
+    REQUIRE(tryPopArgument(args, nullptr));
+    REQUIRE(1 == args.popCount);
+
+    REQUIRE(tryPopArgument(args, nullptr));
+    REQUIRE(2 == args.popCount);
+
+    REQUIRE(tryPopArgument(args, nullptr));
+    REQUIRE(3 == args.popCount);
+  }
+
+  SECTION("when using orThrow") {
+    REQUIRE(0 == args.popCount);
+
+    REQUIRE(Value{'h'} == popArgumentOrThrow(args));
+    REQUIRE(1 == args.popCount);
+
+    REQUIRE(Value{'i'} == popArgumentOrThrow(args));
+    REQUIRE(2 == args.popCount);
+
+    REQUIRE(Value{-2} == popArgumentOrThrow(args));
+    REQUIRE(3 == args.popCount);
+  }
+}
+
+TEST_CASE("Pops at end of argument list are not counted", "[RuntimeApi]") {
+  auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
+  ArgList args{vmState->makePair(Value{'!'}, Value::EmptyList)};
+
+  SECTION("when using pop") {
+    REQUIRE(0 == args.popCount);
+
+    REQUIRE(PopArgResult::Ok == popArgument(args, nullptr));
+    REQUIRE(1 == args.popCount);
+
+    REQUIRE(PopArgResult::EmptyArgList == popArgument(args, nullptr));
+    REQUIRE(1 == args.popCount);
+
+    REQUIRE(PopArgResult::EmptyArgList == popArgument(args, nullptr));
+    REQUIRE(1 == args.popCount);
+  }
+
+  SECTION("when using tryPop") {
+    REQUIRE(0 == args.popCount);
+
+    REQUIRE(tryPopArgument(args, nullptr));
+    REQUIRE(1 == args.popCount);
+
+    REQUIRE_FALSE(tryPopArgument(args, nullptr));
+    REQUIRE(1 == args.popCount);
+
+    REQUIRE_FALSE(tryPopArgument(args, nullptr));
+    REQUIRE(1 == args.popCount);
+  }
+
+  SECTION("when using orThrow") {
+    REQUIRE(0 == args.popCount);
+
+    REQUIRE(Value{'!'} == popArgumentOrThrow(args));
+    REQUIRE(1 == args.popCount);
+
+    auto fn = [&args]() { popArgumentOrThrow(args); };
+
+    REQUIRE_THROWS_AS(fn(), ArgumentMissingException);
+    REQUIRE(1 == args.popCount);
+
+    REQUIRE_THROWS_AS(fn(), ArgumentMissingException);
+    REQUIRE(1 == args.popCount);
   }
 }
 
 TEST_CASE("Popped arguments can be typed checked", "[RuntimeApi]") {
   auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
-  auto argList =
-      vmState->makePair(Value{22}, vmState->makePair(Value{'i'}, Value{}));
+  ArgList args{
+      vmState->makePair(Value{22}, vmState->makePair(Value{'i'}, Value{}))};
 
   SECTION("succeeds if type matches argument value") {
     Value value;
-    Value argTail;
 
     SECTION("with pop") {
-      // First argument 'h'.
-      auto status = popArgument(argList, &value, &argTail, ValueType::Fixnum);
+      // First argument 22.
+      auto status = popArgument(args, &value, ValueType::Fixnum);
 
       REQUIRE(PopArgResult::Ok == status);
       REQUIRE(Value{22} == value);
 
       // Second argument 'i'.
-      status = popArgument(argTail, &value, &argTail, ValueType::Character);
+      status = popArgument(args, &value, ValueType::Character);
 
       REQUIRE(PopArgResult::Ok == status);
       REQUIRE(Value{'i'} == value);
     }
 
     SECTION("with tryPop") {
-      // First argument 'h'.
-      REQUIRE(tryPopArgument(argList, &value, &argTail, ValueType::Fixnum));
+      // First argument 22.
+      REQUIRE(tryPopArgument(args, &value, ValueType::Fixnum));
       REQUIRE(Value{22} == value);
 
       // Second argument 'i'.
-      REQUIRE(tryPopArgument(argTail, &value, &argTail, ValueType::Character));
+      REQUIRE(tryPopArgument(args, &value, ValueType::Character));
       REQUIRE(Value{'i'} == value);
     }
 
     SECTION("with orThrow") {
-      // First argument 'h'.
-      value = popArgumentOrThrow(argList, &argTail, ValueType::Fixnum);
+      // First argument 22.
+      value = popArgumentOrThrow(args, ValueType::Fixnum);
       REQUIRE(Value{22} == value);
 
       // Second argument 'i'.
-      value = popArgumentOrThrow(argTail, &argTail, ValueType::Character);
+      value = popArgumentOrThrow(args, ValueType::Character);
       REQUIRE(Value{'i'} == value);
     }
   }
 
   SECTION("returns error code if type does not match argument value") {
-    auto status = popArgument(argList, nullptr, nullptr, ValueType::Character);
+    auto status = popArgument(args, nullptr, ValueType::Character);
     REQUIRE(PopArgResult::WrongArgValueType == status);
   }
 
   SECTION("throws exception if type does not match argument value") {
     SECTION("with tryPop") {
-      auto fn = [&argList]() {
+      auto fn = [&args]() {
         Value v;
-        tryPopArgument(argList, &v, nullptr, ValueType::Character);
+        tryPopArgument(args, &v, ValueType::Character);
       };
 
       REQUIRE_THROWS_AS(fn(), WrongArgTypeException);
     }
 
     SECTION("with orThorw") {
-      auto fn = [&argList]() {
-        popArgumentOrThrow(argList, nullptr, ValueType::Character);
-      };
+      auto fn = [&args]() { popArgumentOrThrow(args, ValueType::Character); };
 
       REQUIRE_THROWS_AS(fn(), WrongArgTypeException);
     }
@@ -258,14 +334,14 @@ TEST_CASE("Popped arguments can be typed checked", "[RuntimeApi]") {
     Value value;
 
     SECTION("with pop") {
-      auto status = popArgument(argList, &value, nullptr, ValueType::Character);
+      auto status = popArgument(args, &value, ValueType::Character);
       REQUIRE(PopArgResult::WrongArgValueType == status);
       REQUIRE(Value{22} == value);
     }
 
     SECTION("with tryPop") {
-      auto fn = [&argList, &value]() {
-        tryPopArgument(argList, &value, nullptr, ValueType::Character);
+      auto fn = [&args, &value]() {
+        tryPopArgument(args, &value, ValueType::Character);
       };
 
       REQUIRE_THROWS_AS(fn(), WrongArgTypeException);
@@ -273,54 +349,69 @@ TEST_CASE("Popped arguments can be typed checked", "[RuntimeApi]") {
     }
   }
 
-  SECTION("sets arg tail out param even if type check fails") {
-    Value argTail;
+  SECTION("pops argument even if type check fails") {
+    Value value;
 
     SECTION("with pop") {
-      auto status =
-          popArgument(argList, nullptr, &argTail, ValueType::Character);
+      auto status = popArgument(args, &value, ValueType::Character);
       REQUIRE(PopArgResult::WrongArgValueType == status);
-      REQUIRE(cdr(argList).toRawPair() == argTail.toRawPair());
+      REQUIRE(Value{22} == value);
+
+      status = popArgument(args, &value, ValueType::Fixnum);
+      REQUIRE(PopArgResult::WrongArgValueType == status);
+      REQUIRE(Value{'i'} == value);
     }
 
     SECTION("with tryPop") {
       Value value;
 
-      auto fn = [&argList, &argTail, &value]() {
-        tryPopArgument(argList, &value, &argTail, ValueType::Character);
+      auto fn1 = [&args, &value]() {
+        tryPopArgument(args, &value, ValueType::Character);
       };
 
-      REQUIRE_THROWS_AS(fn(), WrongArgTypeException);
-      REQUIRE(cdr(argList).toRawPair() == argTail.toRawPair());
+      REQUIRE_THROWS_AS(fn1(), WrongArgTypeException);
+      REQUIRE(Value{22} == value);
+
+      auto fn2 = [&args, &value]() {
+        tryPopArgument(args, &value, ValueType::Fixnum);
+      };
+
+      REQUIRE_THROWS_AS(fn2(), WrongArgTypeException);
+      REQUIRE(Value{'i'} == value);
     }
 
     SECTION("with orThrow") {
-      auto fn = [&argList, &argTail]() {
-        popArgumentOrThrow(argList, &argTail, ValueType::Character);
+      auto fn1 = [&args, &value]() {
+        popArgumentOrThrow(args, ValueType::Character);
       };
 
-      REQUIRE_THROWS_AS(fn(), WrongArgTypeException);
-      REQUIRE(cdr(argList).toRawPair() == argTail.toRawPair());
+      REQUIRE_THROWS_AS(fn1(), WrongArgTypeException);
+      REQUIRE(args.popCount == 1);
+
+      auto fn2 = [&args, &value]() {
+        popArgumentOrThrow(args, ValueType::Fixnum);
+      };
+
+      REQUIRE_THROWS_AS(fn2(), WrongArgTypeException);
+      REQUIRE(args.popCount == 2);
     }
   }
 
   SECTION("empty list is not type checked") {
+    ArgList a;
+
     SECTION("with pop") {
-      auto status =
-          popArgument(Value::EmptyList, nullptr, nullptr, ValueType::Fixnum);
+      auto status = popArgument(a, nullptr, ValueType::Fixnum);
       REQUIRE(PopArgResult::EmptyArgList == status);
 
-      status =
-          popArgument(Value::EmptyList, nullptr, nullptr, ValueType::EmptyList);
+      status = popArgument(a, nullptr, ValueType::EmptyList);
       REQUIRE(PopArgResult::EmptyArgList == status);
     }
 
     SECTION("with tryPop") {
       Value v;
-      REQUIRE_FALSE(
-          tryPopArgument(Value::EmptyList, &v, nullptr, ValueType::Fixnum));
-      REQUIRE_FALSE(
-          tryPopArgument(Value::EmptyList, &v, nullptr, ValueType::EmptyList));
+      REQUIRE_FALSE(tryPopArgument(a, &v, ValueType::Fixnum));
+      REQUIRE_FALSE(tryPopArgument(a, &v, ValueType::EmptyList));
     }
   }
 }

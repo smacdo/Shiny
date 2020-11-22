@@ -1,6 +1,8 @@
 #pragma once
 #include "runtime/Value.h"
+
 #include <memory>
+#include <tuple>
 
 namespace Shiny {
   class VmState;
@@ -25,7 +27,11 @@ namespace Shiny {
     static bool isSelfEvaluating(Value value);
 
   private:
-    Value evaluateArgumentList(Value args, Environment& env);
+    /**
+     * Construct and return a new argument list containing the evaluated results
+     * of the passed arguments. Also return the number of arguments present.
+     */
+    Value evaluateArgumentList(Value args, Environment& env, size_t* argCount);
 
     Value ifProc(Value arguments, VmState& vm);
 
@@ -43,4 +49,12 @@ namespace Shiny {
     Shiny::Value setSymbol_;
   };
 
+  /** More arguments were passed than consumed by the invoked procedure. */
+  class ArgCountMismatch : public Exception {
+  public:
+    ArgCountMismatch(
+        size_t expectedCount,
+        size_t actualCount,
+        EXCEPTION_CALLSITE_PARAMS);
+  };
 } // namespace Shiny

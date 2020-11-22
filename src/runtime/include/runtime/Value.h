@@ -16,10 +16,11 @@
 
 namespace Shiny {
   class Allocator;
-  class Value;
   class Environment;
+  class Value;
   class VmState;
 
+  struct ArgList;
   struct RawString;
   struct RawPair;
 
@@ -50,7 +51,8 @@ namespace Shiny {
   using fixnum_t = int;
 
   /** Native procedure type. */
-  using procedure_t = Value (*)(Value args, VmState& vmState, Environment& env);
+  using procedure_t =
+      Value (*)(ArgList& args, VmState& vmState, Environment& env);
 
   /** A dynamically typed value. */
   class Value {
