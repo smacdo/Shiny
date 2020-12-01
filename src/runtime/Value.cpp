@@ -14,6 +14,8 @@
 using namespace Shiny;
 
 const Value Value::EmptyList;
+const Value Value::True{true};
+const Value Value::False{false};
 
 namespace {
   // TODO: Move printing functions to a separate printing API.

@@ -38,6 +38,10 @@ bool Shiny::tryPopArgument(
           expectedType.value(),
           argOutPtr->type(),
           EXCEPTION_CALLSITE_ARGS);
+    default: // TODO: Make this whole thing a macro.
+      // TODO: Introduce a SwitchUnhandledDefaultException class.
+      assert(false && "Unhandled switch default case");
+      throw std::runtime_error("Unhandled switch default case");
   }
 }
 
@@ -62,6 +66,10 @@ Value Shiny::popArgumentOrThrow(
           value.type(),
           EXCEPTION_CALLSITE_ARGS);
       break;
+    default: // TODO: Make this whole thing a macro.
+      // TODO: Introduce a SwitchUnhandledDefaultException class.
+      assert(false && "Unhandled switch default case");
+      throw std::runtime_error("Unhandled switch default case");
   }
 }
 

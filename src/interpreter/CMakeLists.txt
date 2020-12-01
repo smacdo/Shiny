@@ -3,6 +3,10 @@ add_executable(shiny-interpreter
     ShinyInterpreter.cpp
 )
 
+# Add a custom "repl" target to easily run the REPL part of this program.
+add_custom_target(repl
+  COMMAND $<TARGET_FILE:shiny-interpreter>)
+
 target_link_libraries(shiny-interpreter
     PRIVATE
         shiny-runtime

@@ -5,6 +5,7 @@
 #include "runtime/VmState.h"
 
 #include <fmt/format.h>
+#include <limits>
 
 using namespace Shiny;
 
@@ -96,7 +97,8 @@ tailcall:
       // Double check that the invoked procedure actually used all the arguments
       // that it was passed. Once checked return the result of the invoked
       // procedure call.
-      if (arglist.popCount != argCount) {
+      if (arglist.popCount != argCount &&
+          arglist.popCount != std::numeric_limits<size_t>::max()) {
         // TODO: Unify this exception with ArgumentMissingException.
         throw ArgCountMismatch(
             arglist.popCount, argCount, EXCEPTION_CALLSITE_ARGS);

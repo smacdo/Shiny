@@ -21,6 +21,10 @@ add_executable(test-shiny-runtime
     VmStateTests.cpp
 )
 
+add_test(
+    NAME test-shiny-runtime
+    COMMAND test-shiny-runtime --use-colour=yes)
+
 set_target_properties(test-shiny-runtime
     PROPERTIES
         CXX_EXTENSIONS OFF

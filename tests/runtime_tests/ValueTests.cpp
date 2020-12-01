@@ -12,6 +12,16 @@ TEST_CASE("Value static property EmptyList is in fact a EmptyList", "[Value]") {
   REQUIRE(ValueType::EmptyList == Value::EmptyList.type());
 }
 
+TEST_CASE("Value static property True is in fact true", "[Value]") {
+  REQUIRE(ValueType::Boolean == Value::True.type());
+  REQUIRE(Value::True.toBool());
+}
+
+TEST_CASE("Value static property False is in fact false", "[Value]") {
+  REQUIRE(ValueType::Boolean == Value::False.type());
+  REQUIRE_FALSE(Value::False.toBool());
+}
+
 TEST_CASE("Empty List", "[Value]") {
   const Value empty; // Default constructor constructs empty list.
 

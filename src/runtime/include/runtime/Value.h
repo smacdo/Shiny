@@ -50,6 +50,9 @@ namespace Shiny {
   /** Fixnum native type. */
   using fixnum_t = int;
 
+  /** Floating point native type. */
+  using flonum_t = double;
+
   /** Native procedure type. */
   using procedure_t =
       Value (*)(ArgList& args, VmState& vmState, Environment& env);
@@ -248,6 +251,12 @@ namespace Shiny {
   public:
     /** Read only field to get the default EmptyList value. */
     static const Value EmptyList;
+
+    /** Read only field to get a True value. */
+    static const Value True;
+
+    /** Read only field to get a False value. */
+    static const Value False;
 
     /** Print the Value to an output stream. */
     static std::ostream& print(std::ostream& os, const Value& v);
