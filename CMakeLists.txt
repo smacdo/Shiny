@@ -19,4 +19,15 @@ add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 add_subdirectory(thirdparty)
 add_subdirectory(src/interpreter)
 add_subdirectory(src/runtime)
-add_subdirectory(tests/runtime_tests)
+
+# Only enable tests when this project is building itself. That way when other
+# projects include this CMake file it won't build our tests too.
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    include(CTest)
+    enable_testing()
+endif()
+
+# If tests are enabled pull in the unit test projects.
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
+  add_subdirectory(tests/runtime_tests) 
+endif()

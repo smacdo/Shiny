@@ -68,5 +68,6 @@
     "editor.formatOnSave": true,
     "editor.tabSize": 2,
     "cmake.configureOnOpen": true,
-    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "cmake.generator": "Ninja"
 }

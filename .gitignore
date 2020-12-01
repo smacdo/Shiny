@@ -1,4 +1,5 @@
 build/
+buildout/
 
 # Compiled Object files
 *.slo

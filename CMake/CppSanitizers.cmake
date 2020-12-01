@@ -21,7 +21,7 @@ function(target_use_sanitizers target_name)
         target_link_libraries(
           ${target_name}
             PUBLIC
-              -fsanitize=address)
+              -fsanitize=address,undefined)
       else()
         # ASAN only.
         message(STATUS "Enabled ASAN for ${target_name}")
@@ -47,7 +47,7 @@ function(target_use_sanitizers target_name)
           target_link_libraries(
             ${target_name}
               PUBLIC
-                -fsanitize=memory)
+                -fsanitize=memory,undefined)
         else()
           # ASAN only.
           message(STATUS "Enabled MSAN for ${target_name}")
