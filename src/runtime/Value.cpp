@@ -21,7 +21,7 @@ namespace {
   // TODO: Move printing functions to a separate printing API.
   // TODO: Can we switch away from ostream? (perf, less C++ API)
 
-  std::ostream& printPair(std::ostream& os, RawPair* pair) {
+  std::ostream& printPair(std::ostream& os, const RawPair* pair) {
     assert(pair != nullptr);
 
     // Print the left side.
@@ -148,6 +148,9 @@ std::ostream& Value::print(std::ostream& os, const Value& v) {
       os << "(";
       printPair(os, v.toRawPair());
       os << ")";
+      break;
+    case ValueType::CompoundProcedure:
+      os << "#<compound procedure>";
       break;
     case ValueType::PrimitiveProcedure:
       os << "#<procedure>";

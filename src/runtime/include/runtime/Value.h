@@ -16,28 +16,30 @@
 
 namespace Shiny {
   class Allocator;
-  class Environment;
+  class EnvironmentFrame;
   class Value;
   class VmState;
 
   struct ArgList;
+  struct CompoundProcedure;
   struct RawString;
   struct RawPair;
 
   /** Type of value stored in a Value. */
   enum class ValueType {
-    EmptyList,
-    Boolean,
-    Fixnum,
-    Symbol,
-    Character,
-    String,
-    Pair,
-    PrimitiveProcedure
+    EmptyList,          // 0
+    Boolean,            // 1
+    Fixnum,             // 2
+    Symbol,             // 3
+    Character,          // 4
+    String,             // 5
+    Pair,               // 6
+    CompoundProcedure,  // 7
+    PrimitiveProcedure, // 8
   };
 
   /** Table of names for ValueType. */
-  static constexpr const std::array<const char*, 8> ValueTypeNames = {
+  static constexpr const std::array<const char*, 9> ValueTypeNames = {
       "EmptyList",
       "Boolean",
       "Fixnum",
@@ -45,6 +47,7 @@ namespace Shiny {
       "Character",
       "String",
       "Pair",
+      "CompoundProcedure",
       "PrimitiveProcedure"};
 
   /** Fixnum native type. */
@@ -55,7 +58,7 @@ namespace Shiny {
 
   /** Native procedure type. */
   using procedure_t =
-      Value (*)(ArgList& args, VmState& vmState, Environment& env);
+      Value (*)(ArgList& args, VmState& vmState, EnvironmentFrame* env);
 
   /** A dynamically typed value. */
   class Value {
@@ -68,15 +71,15 @@ namespace Shiny {
         : type_(ValueType::Boolean),
           bool_value(value) {}
 
-    /** Initialize with a fixnum value. */
-    explicit constexpr Value(fixnum_t fixnum) noexcept
-        : type_(ValueType::Fixnum),
-          fixnum_value(fixnum) {}
-
     /** Initialize with a character value. */
     explicit constexpr Value(char c) noexcept
         : type_(ValueType::Character),
           char_value(c) {}
+
+    /** Initialize with a fixnum value. */
+    explicit constexpr Value(fixnum_t fixnum) noexcept
+        : type_(ValueType::Fixnum),
+          fixnum_value(fixnum) {}
 
     /**
      * Initialize with a string or as symbol value.
@@ -104,6 +107,13 @@ namespace Shiny {
         : type_(ValueType::Pair),
           pair_ptr(rawPair) {
       assert(rawPair != nullptr);
+    }
+
+    /** Initialize with a compound procedure. */
+    explicit constexpr Value(CompoundProcedure* compoundProcedure)
+        : type_(ValueType::CompoundProcedure),
+          compoundProcedure_ptr(compoundProcedure) {
+      assert(compoundProcedure != nullptr);
     }
 
     /** Initialize with a pointer to a native function. */
@@ -154,6 +164,11 @@ namespace Shiny {
     /** Test if this value is a pair. */
     constexpr bool isPair() const noexcept { return type_ == ValueType::Pair; }
 
+    /** Test if this value is a compound procedure. */
+    constexpr bool isCompoundProcedure() const noexcept {
+      return type_ == ValueType::CompoundProcedure;
+    }
+
     /** Test if this value is a primitive procedure. */
     constexpr bool isPrimitiveProcedure() const noexcept {
       return type_ == ValueType::PrimitiveProcedure;
@@ -197,7 +212,31 @@ namespace Shiny {
      * Returns this value as a raw pair.
      * This method has undefined behavior if it is not a pair type.
      */
-    RawPair* toRawPair() const noexcept { return pair_ptr; }
+    RawPair* toRawPair() noexcept { return pair_ptr; }
+
+    /**
+     * Returns this value as a raw pair.
+     * This method has undefined behavior if it is not a pair type.
+     */
+    const RawPair* toRawPair() const noexcept { return pair_ptr; }
+
+    /**
+     * Returns this value as pointer to a compound procedure.
+     * This method has undefined behavior if it is not a compound procedure
+     * type.
+     */
+    CompoundProcedure* toCompoundProcedure() noexcept {
+      return compoundProcedure_ptr;
+    }
+
+    /**
+     * Returns this value as pointer to a compound procedure.
+     * This method has undefined behavior if it is not a compound procedure
+     * type.
+     */
+    const CompoundProcedure* toCompoundProcedure() const noexcept {
+      return compoundProcedure_ptr;
+    }
 
     /**
      * Returns this value as a primitive procedure pointer.
@@ -234,6 +273,8 @@ namespace Shiny {
           case ValueType::Symbol:
           case ValueType::String:
             return string_ptr == rhs.string_ptr;
+          case ValueType::CompoundProcedure:
+            return compoundProcedure_ptr == rhs.compoundProcedure_ptr;
           case ValueType::PrimitiveProcedure:
             return procedure_ptr == rhs.procedure_ptr;
           case ValueType::Pair:
@@ -264,9 +305,10 @@ namespace Shiny {
   private:
     ValueType type_ = ValueType::EmptyList;
     union {
-      fixnum_t fixnum_value;
       bool bool_value;
+      CompoundProcedure* compoundProcedure_ptr;
       char char_value;
+      fixnum_t fixnum_value;
       RawString* string_ptr;
       RawPair* pair_ptr;
       procedure_t procedure_ptr;
@@ -279,6 +321,21 @@ namespace Shiny {
   struct RawPair {
     Value car;
     Value cdr;
+  };
+
+  /** Information on compound procedure. */
+  struct CompoundProcedure {
+    /** List of parameters this function accepts. */
+    Value parameters;
+
+    /** Count of parameters. */
+    size_t parameterCount;
+
+    /** List of statements and expressions to execute. */
+    Value body;
+
+    /** Procedure's lexically scoped environment frame. */
+    EnvironmentFrame* enclosingFrame;
   };
 
   /** Special character definitions. */

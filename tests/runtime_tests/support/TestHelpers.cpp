@@ -26,7 +26,7 @@ Value Shiny::evaluate(
     std::string_view input,
     std::shared_ptr<VmState> vmState) {
   Evaluator eval(vmState);
-  return eval.evaluate(read(input, vmState));
+  return eval.evaluate(read(input, vmState), vmState->globalEnvironment());
 }
 
 //------------------------------------------------------------------------------

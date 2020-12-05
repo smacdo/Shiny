@@ -2,6 +2,7 @@
 
 #include "TestHelpers.h"
 
+#include "runtime/EnvironmentFrame.h"
 #include "runtime/Value.h"
 #include "runtime/VmState.h"
 #include "runtime/allocators/MallocAllocator.h"
@@ -35,7 +36,7 @@ void EvaluatorFixture::defineProc(const std::string& name, procedure_t proc) {
   procCallCounter_[name] = 0;
 
   // register.
-  vmState_->environment().defineVariable(
+  vmState_->globalEnvironment()->define(
       vmState_->makeSymbol(name), Value{proc});
 }
 

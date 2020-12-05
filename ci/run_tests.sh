@@ -29,6 +29,8 @@ if [[ ! -d "$CI_BUILD_ROOT" ]] ; then
 
   # Initialize build directory with CMake.
   cmake \
+    -Wdev \
+    -DBUILD_TESTING=ON \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DUSE_ADDRESS_SANITIZER="$BUILD_ASAN" \
     -DUSE_UNDEF_SANITIZER="$BUILD_UBSAN" \
@@ -42,10 +44,8 @@ if [[ ! -d "$CI_BUILD_ROOT" ]] ; then
 fi
 
 # Build the test target(s).
-# TODO: Only build unit tests.
 echo "Building..."
-#cmake --build "$CI_BUILD_ROOT"
-ninja -C "$CI_BUILD_ROOT"
+ninja -C "$CI_BUILD_ROOT" "test-shiny-runtime"
 
 if [[ $? -ne 0 ]] ; then
     echo "Nina build failed! Aborting..." 1>&2

@@ -34,7 +34,8 @@ void InteractiveSession::MainLoop() {
 
   while (true) {
     Reader reader{vmState};
-    auto result = evaluator.evaluate(reader.read(GetUserInput()));
+    auto result = evaluator.evaluate(
+        reader.read(GetUserInput()), vmState->globalEnvironment());
     std::cout << result << std::endl; // TODO: use stream operator.
   }
 }

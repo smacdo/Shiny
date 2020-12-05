@@ -1,5 +1,6 @@
 #include "support/EvaluatorFixture.h"
 
+#include "runtime/EnvironmentFrame.h"
 #include "runtime/Evaluator.h"
 #include "runtime/RuntimeApi.h"
 #include "runtime/Value.h"
@@ -31,12 +32,12 @@ public:
   }
 
 protected:
-  static Value testCounter_proc(ArgList&, VmState&, Environment&) {
+  static Value testCounter_proc(ArgList&, VmState&, EnvironmentFrame*) {
     incProcCallCount(kTestCounterProc);
     return Value{42};
   }
 
-  static Value testUp_proc(ArgList& args, VmState&, Environment&) {
+  static Value testUp_proc(ArgList& args, VmState&, EnvironmentFrame*) {
     incProcCallCount(kTestUpProc);
     auto arg = popArgumentOrThrow(args, ValueType::Character);
     char c = std::toupper(arg.toChar());
@@ -44,21 +45,22 @@ protected:
     return result;
   }
 
-  static Value testAdd2_proc(ArgList& args, VmState&, Environment&) {
+  static Value testAdd2_proc(ArgList& args, VmState&, EnvironmentFrame*) {
     incProcCallCount(kTestAdd2Proc);
     auto a = popArgumentOrThrow(args, ValueType::Fixnum);
     auto b = popArgumentOrThrow(args, ValueType::Fixnum);
     return Value{a.toFixnum() + b.toFixnum()};
   }
 
-  static Value testTryModParam_proc(ArgList& args, VmState&, Environment&) {
+  static Value
+      testTryModParam_proc(ArgList& args, VmState&, EnvironmentFrame*) {
     incProcCallCount(kTestTryModParamProc);
     auto a = popArgumentOrThrow(args, ValueType::Fixnum);
     a = Value{a.toFixnum() + 1};
     return a;
   }
 
-  static Value testTryModPair_proc(ArgList& args, VmState&, Environment&) {
+  static Value testTryModPair_proc(ArgList& args, VmState&, EnvironmentFrame*) {
     incProcCallCount(kTestTryModPairProc);
     auto a = popArgumentOrThrow(args, ValueType::Pair);
     set_car(a, Value{2222});
@@ -109,8 +111,8 @@ TEST_CASE_METHOD(
     EvaluatorProcedureFixture,
     "Arguments are evaluated before calling procedure",
     "[Evaluator]") {
-  vmState_->environment().defineVariable(vmState_->makeSymbol("a"), Value{10});
-  vmState_->environment().defineVariable(vmState_->makeSymbol("b"), Value{2});
+  vmState_->globalEnvironment()->define(vmState_->makeSymbol("a"), Value{10});
+  vmState_->globalEnvironment()->define(vmState_->makeSymbol("b"), Value{2});
 
   REQUIRE(Value{12} == evaluate("(test-add2 a b)"));
 }
@@ -127,8 +129,7 @@ TEST_CASE_METHOD(
     EvaluatorProcedureFixture,
     "Throws exception if operator not a procedure",
     "[Evaluator]") {
-  vmState_->environment().defineVariable(
-      vmState_->makeSymbol("foo"), Value{42});
+  vmState_->globalEnvironment()->define(vmState_->makeSymbol("foo"), Value{42});
   auto fn = [this]() { evaluate("(foo)"); };
   REQUIRE_THROWS_AS(fn(), Exception);
 }
@@ -161,9 +162,9 @@ TEST_CASE_METHOD(
     EvaluatorProcedureFixture,
     "Cannot modify atomic values when passed to a function",
     "[Evaluator]") {
-  vmState_->environment().defineVariable(vmState_->makeSymbol("a"), Value{10});
+  vmState_->globalEnvironment()->define(vmState_->makeSymbol("a"), Value{10});
   evaluate("(test-mod-param a)");
-  auto a = vmState_->environment().lookupVariable(vmState_->makeSymbol("a"));
+  auto a = vmState_->globalEnvironment()->lookup(vmState_->makeSymbol("a"));
   REQUIRE(10 == a.toFixnum());
 }
 
@@ -171,9 +172,10 @@ TEST_CASE_METHOD(
     EvaluatorProcedureFixture,
     "Arguments are shallow copied when evaluated",
     "[Evaluator]") {
-  vmState_->environment().defineVariable(
-      vmState_->makeSymbol("a"), vmState_->makePair(Value{-5}, Value{6}));
+  vmState_->globalEnvironment()->define(
+      vmState_->makeSymbol("a"),
+      vmState_->makePair(Value{-5}, Value::EmptyList));
   evaluate("(test-mod-pair a)");
-  auto a = vmState_->environment().lookupVariable(vmState_->makeSymbol("a"));
+  auto a = vmState_->globalEnvironment()->lookup(vmState_->makeSymbol("a"));
   REQUIRE(2222 == a.toRawPair()->car.toFixnum());
 }

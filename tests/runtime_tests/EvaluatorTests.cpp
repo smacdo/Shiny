@@ -1,5 +1,6 @@
 #include "runtime/Evaluator.h"
 
+#include "runtime/EnvironmentFrame.h"
 #include "runtime/Reader.h"
 #include "runtime/Value.h"
 #include "runtime/VmState.h"
@@ -49,10 +50,10 @@ TEST_CASE("Evaluating symbols", "[Evaluator]") {
 
   SECTION("returns bound variable value") {
     auto varName1 = vmState->makeSymbol("foo");
-    vmState->environment().defineVariable(varName1, Value{125});
+    vmState->globalEnvironment()->define(varName1, Value{125});
 
     auto varName2 = vmState->makeSymbol("bar");
-    vmState->environment().defineVariable(varName2, Value{'Y'});
+    vmState->globalEnvironment()->define(varName2, Value{'Y'});
 
     REQUIRE(Value{125} == evaluate("foo", vmState));
     REQUIRE(Value{'Y'} == evaluate("bar", vmState));
@@ -218,6 +219,110 @@ TEST_CASE("If procedure", "[Evaluator]") {
     REQUIRE(Value{'T'} == evaluate("(if 1 #\\T #\\F)", vmState));
     REQUIRE(Value{'T'} == evaluate("(if #\\f #\\T #\\F)", vmState));
   }
+
+  // TODO: After converting to SEXP with better argument handling...
+  //  1. No args => exception.
+  //  2. One arg => exception.
+  //  3. Three or more args => exception.
+}
+
+TEST_CASE("Lambda form is parsed into a CompoundProcedure", "[Evaluator]") {
+  auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
+  // TODO: Check that enclosingFrame is correctly set (eg doesnt just take the
+  // global environment).
+
+  SECTION("with lambda that returns a procedure") {
+    auto proc = evaluate("(lambda (x y) (+ x y))", vmState);
+    REQUIRE(proc.isCompoundProcedure());
+  }
+
+  SECTION("with a no argument lambda") {
+    auto proc = evaluate("(lambda () 22)", vmState);
+    auto p = proc.toCompoundProcedure();
+
+    REQUIRE(0 == p->parameterCount);
+    REQUIRE(Value::EmptyList == p->parameters);
+    REQUIRE(ValueType::Pair == p->body.type());
+    REQUIRE(Value{22} == car(p->body));
+    REQUIRE(vmState->globalEnvironment() == p->enclosingFrame);
+  }
+
+  SECTION("with a simple adder") {
+    auto proc = evaluate("(lambda (x y) (+ x y))", vmState);
+    auto p = proc.toCompoundProcedure();
+
+    auto x = vmState->makeSymbol("x");
+    auto y = vmState->makeSymbol("y");
+    auto plus = vmState->makeSymbol("+");
+
+    REQUIRE(2 == p->parameterCount);
+    REQUIRE(x == car(p->parameters));
+    REQUIRE(y == cadr(p->parameters));
+
+    auto s0 = car(p->body);
+    REQUIRE(Value::EmptyList == cdr(p->body));
+
+    REQUIRE(plus == car(s0));
+    REQUIRE(x == cadr(s0));
+    REQUIRE(y == caddr(s0));
+  }
+
+  SECTION("with a multi line body") {
+    auto proc = evaluate("(lambda (x) (x 2) (+ x 1))", vmState);
+    auto p = proc.toCompoundProcedure();
+
+    auto x = vmState->makeSymbol("x");
+    auto plus = vmState->makeSymbol("+");
+
+    REQUIRE(1 == p->parameterCount);
+    REQUIRE(x == car(p->parameters));
+
+    auto s0 = car(p->body);
+    auto s1 = cadr(p->body);
+    REQUIRE(Value::EmptyList == cddr(p->body));
+
+    REQUIRE(x == car(s0));
+    REQUIRE(Value{2} == cadr(s0));
+    REQUIRE(Value::EmptyList == cddr(s0));
+
+    REQUIRE(plus == car(s1));
+    REQUIRE(x == cadr(s1));
+    REQUIRE(Value{1} == caddr(s1));
+    REQUIRE(Value::EmptyList == cdddr(s1));
+  }
+
+  SECTION("throws error if parameter is not a symbol") {
+    auto fn = [&vmState]() { evaluate("(lambda (x 2) 33)", vmState); };
+    REQUIRE_THROWS_AS(fn(), WrongValueTypeException);
+  }
+
+  // TODO: After converting to SEXP with better argument handling...
+  //  1. No args => exception.
+  //  2. One arg => exception.
+  //  3. Three or more args => exception.
+}
+
+TEST_CASE("Lambda evaluation", "[Evaluator]") {
+  auto vmState = std::make_shared<VmState>(std::make_unique<MallocAllocator>());
+  // TODO: Verify tail call.
+
+  SECTION("no argument lambda that returns atom") {
+    REQUIRE(Value{42} == evaluate("((lambda () 42))", vmState));
+  }
+
+  SECTION("one argument lambda returns self") {
+    REQUIRE(Value{5} == evaluate("((lambda (x) x) 5)", vmState));
+    REQUIRE(Value{'z'} == evaluate("((lambda (x) x) #\\z)", vmState));
+  }
+
+  SECTION("two argument lambda returns added arugments") {
+    REQUIRE(Value{8} == evaluate("((lambda (x y) (+ x y)) 5 3)", vmState));
+    REQUIRE(Value{11} == evaluate("((lambda (x y) (+ x y)) 15 -4)", vmState));
+  }
+
+  // TODO: Verify all expressions in body except the last one do not return
+  // a value.
+  // TODO: Write some more complicated lambdas that utilize scope to verify.
 
   // TODO: After converting to SEXP with better argument handling...
   //  1. No args => exception.

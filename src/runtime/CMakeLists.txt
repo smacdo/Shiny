@@ -1,11 +1,16 @@
-project(shiny-runtime)
+project(shiny-runtime
+    DESCRIPTION "Shiny VM runtime"
+    HOMEPAGE_URL "https://github.com/smacdo/Shiny/"
+    VERSION 0.2)
 
 add_library(shiny-runtime
     allocators/FreeListAllocator.cpp
     allocators/MallocAllocator.cpp
+    procedures/MathProcedures.cpp
+    procedures/PairProcedures.cpp
     Allocator.cpp
     CharacterStream.cpp
-    Environment.cpp
+    EnvironmentFrame.cpp
     Evaluator.cpp
     Exception.cpp
     Procedures.cpp
@@ -46,3 +51,25 @@ else()
         -Wall -Wextra -pedantic -Werror)
 endif()
 
+# Installation rules.
+install(
+    TARGETS shiny-runtime
+    EXPORT shiny-runtime-targets
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include
+)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    ShinyRuntimeConfigVersion.cmake
+    VERSION ${PACKAGE_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+configure_file(ShinyRuntimeConfig.cmake.in ShinyRuntimeConfig.cmake @ONLY)
+install(
+    FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/ShinyRuntimeConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/ShinyRuntimeConfigVersion.cmake"
+    DESTINATION lib/cmake/ShinyRuntime
+)

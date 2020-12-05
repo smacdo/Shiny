@@ -235,6 +235,20 @@ TEST_CASE("Can read pairs", "[Reader]") {
     REQUIRE(std::string("bob") == p->car.toStringView());
     REQUIRE(p->cdr.isEmptyList());
   }
+
+  SECTION("pair with empty pair followed by atom") {
+    auto first = read("(() 3)", vmState);
+
+    REQUIRE(first.isPair());
+    auto p = first.toRawPair();
+
+    REQUIRE(Value::EmptyList == p->car);
+    REQUIRE(ValueType::Pair == p->cdr.type());
+    p = p->cdr.toRawPair();
+
+    REQUIRE(Value{3} == p->car);
+    REQUIRE(p->cdr.isEmptyList());
+  }
 }
 
 TEST_CASE("Read symbols", "[Reader]") {

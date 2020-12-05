@@ -398,8 +398,8 @@ TEST_CASE("Pairs", "[Value]") {
   }
 }
 
-Value testProc1(ArgList&, VmState&, Environment&) { return Value{2}; }
-Value testProc2(ArgList&, VmState&, Environment&) { return Value{2}; }
+Value testProc1(ArgList&, VmState&, EnvironmentFrame*) { return Value{2}; }
+Value testProc2(ArgList&, VmState&, EnvironmentFrame*) { return Value{2}; }
 
 TEST_CASE("Primitive procedure values", "[Value]") {
   Value a{&testProc1};
@@ -433,6 +433,59 @@ TEST_CASE("Primitive procedure values", "[Value]") {
 
   SECTION("support inequality testing with other primtive procedures") {
     Value a2{&testProc1};
+
+    REQUIRE_FALSE(a != a);
+    REQUIRE_FALSE(a != a2);
+    REQUIRE(a != b);
+  }
+
+  SECTION("are not equal to any other type") {
+    REQUIRE_FALSE(a == Value{});
+    REQUIRE_FALSE(a == Value{22});
+    REQUIRE_FALSE(b == Value{'x'});
+  }
+}
+
+TEST_CASE("Compound procedure values", "[Value]") {
+  auto cproc1 = std::make_unique<CompoundProcedure>();
+  Value a{cproc1.get()};
+
+  auto cproc2 = std::make_unique<CompoundProcedure>();
+  Value b{cproc2.get()};
+
+  SECTION("are always of type compound procedure") {
+    REQUIRE(ValueType::CompoundProcedure == a.type());
+    REQUIRE(a.isCompoundProcedure());
+    REQUIRE_FALSE(a.isPrimitiveProcedure());
+
+    REQUIRE(ValueType::CompoundProcedure == b.type());
+    REQUIRE(b.isCompoundProcedure());
+    REQUIRE_FALSE(b.isPrimitiveProcedure());
+  }
+
+  SECTION("convert to a string") {
+    REQUIRE(std::string("#<compound procedure>") == a.toString());
+    REQUIRE(std::string("#<compound procedure>") == b.toString());
+  }
+
+  SECTION("convert to a function pointer") {
+    auto procA = a.toCompoundProcedure();
+    auto procB = b.toCompoundProcedure();
+
+    REQUIRE(cproc1.get() == procA);
+    REQUIRE(cproc2.get() == procB);
+  }
+
+  SECTION("are only equal to values with same function pointer") {
+    Value a2{cproc1.get()};
+
+    REQUIRE(a == a);
+    REQUIRE(a == a2);
+    REQUIRE_FALSE(a == b);
+  }
+
+  SECTION("support inequality testing with other primtive procedures") {
+    Value a2{cproc1.get()};
 
     REQUIRE_FALSE(a != a);
     REQUIRE_FALSE(a != a2);

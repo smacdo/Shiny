@@ -1,0 +1,10 @@
+include(CMakeFindDependencyMacro)
+
+# Config options from master build.
+#set(my-config-var @my-config-var@)
+
+# Dependencies
+#find_dependency(MYDEP REQUIRED)
+
+# Add the targets file
+#include("${CMAKE_CURRENT_LIST_DIR}/ShinyTargets.cmake")

@@ -1,4 +1,4 @@
-#include "runtime/Environment.h"
+#include "runtime/EnvironmentFrame.h"
 #include "runtime/Exception.h"
 
 #include <fmt/format.h>
@@ -6,10 +6,11 @@
 using namespace Shiny;
 
 //------------------------------------------------------------------------------
-Environment::Environment(Environment* enclosing) : enclosing_(enclosing) {}
+EnvironmentFrame::EnvironmentFrame(EnvironmentFrame* parent) noexcept
+    : parent_(parent) {}
 
 //------------------------------------------------------------------------------
-bool Environment::defineVariable(Value name, Value value) {
+bool EnvironmentFrame::define(Value name, Value value) {
   // Only symbols are allowed for variable names.
   if (!name.isSymbol()) {
     throw VariableNameSymbolRequiredException(name, EXCEPTION_CALLSITE_ARGS);
@@ -19,7 +20,7 @@ bool Environment::defineVariable(Value name, Value value) {
   // exists otherwise create a new entry.
   size_t existingIndex = 0;
 
-  if (tryFindVariableSlot(name, &existingIndex)) {
+  if (tryFindSlot(name, &existingIndex)) {
     variables_[existingIndex].value = value;
     return false;
   } else {
@@ -29,10 +30,10 @@ bool Environment::defineVariable(Value name, Value value) {
 }
 
 //------------------------------------------------------------------------------
-Value Environment::lookupVariable(Value name) const {
+Value EnvironmentFrame::lookup(Value name, SearchMode mode) const {
   Value result;
 
-  if (!tryLookupVariable(name, &result)) {
+  if (!tryLookup(name, mode, &result)) {
     throw UnboundVariableException(name, EXCEPTION_CALLSITE_ARGS);
   }
 
@@ -40,61 +41,68 @@ Value Environment::lookupVariable(Value name) const {
 }
 
 //------------------------------------------------------------------------------
-bool Environment::tryLookupVariable(Value name, Value* resultOut) const {
+bool EnvironmentFrame::tryLookup(Value name, Value* resultOut) const {
+  return tryLookup(name, SearchMode::Recurse, resultOut);
+}
+
+//------------------------------------------------------------------------------
+bool EnvironmentFrame::tryLookup(Value name, SearchMode mode, Value* resultOut)
+    const {
   // Only symbols are allowed for variable names.
   if (!name.isSymbol()) {
     throw VariableNameSymbolRequiredException(name, EXCEPTION_CALLSITE_ARGS);
   }
 
-  // Search current environment for variable name. If it does not exist
+  // Search current EnvironmentFrame for variable name. If it does not exist
   // recursively search the enclosing enviroment.
   size_t existingIndex = 0;
 
-  if (tryFindVariableSlot(name, &existingIndex)) {
+  if (tryFindSlot(name, &existingIndex)) {
     if (resultOut != nullptr) {
       *resultOut = variables_[existingIndex].value;
     }
 
     return true;
-  } else if (enclosing_ != nullptr) {
-    return enclosing_->tryLookupVariable(name, resultOut);
+  } else if (parent_ != nullptr && mode == SearchMode::Recurse) {
+    return parent_->tryLookup(name, resultOut);
   } else {
     return false;
   }
 }
 
 //------------------------------------------------------------------------------
-void Environment::setVariable(Value name, Value value) {
-  if (!trySetVariable(name, value)) {
+void EnvironmentFrame::set(Value name, Value value) {
+  if (!trySet(name, value)) {
     throw UnboundVariableException(name, EXCEPTION_CALLSITE_ARGS);
   }
 }
 
 //------------------------------------------------------------------------------
-bool Environment::trySetVariable(Value name, Value value) {
+bool EnvironmentFrame::trySet(Value name, Value value) {
   // Only symbols are allowed for variable names.
   if (!name.isSymbol()) {
     throw VariableNameSymbolRequiredException(name, EXCEPTION_CALLSITE_ARGS);
   }
 
-  // Search current environment for variable name, or if it does not exist
-  // recursively search its enclosing environment. If no variable could be found
-  // for this name then return false to to indicate no variable was changed.
+  // Search current EnvironmentFrame for variable name, or if it does not exist
+  // recursively search its enclosing EnvironmentFrame. If no variable could be
+  // found for this name then return false to to indicate no variable was
+  // changed.
   size_t existingIndex = 0;
 
-  if (tryFindVariableSlot(name, &existingIndex)) {
+  if (tryFindSlot(name, &existingIndex)) {
     variables_[existingIndex].value = value;
     return true;
-  } else if (enclosing_ != nullptr) {
+  } else if (parent_ != nullptr) {
     // TODO: Optimize by using iteration instead of recursion.
-    return enclosing_->trySetVariable(name, value);
+    return parent_->trySet(name, value);
   } else {
     return false;
   }
 }
 
 //------------------------------------------------------------------------------
-bool Environment::tryFindVariableSlot(Value name, size_t* indexOut)
+bool EnvironmentFrame::tryFindSlot(Value name, size_t* indexOut)
     const noexcept {
   for (size_t i = 0; i < variables_.size(); ++i) {
     if (variables_[i].name == name) {

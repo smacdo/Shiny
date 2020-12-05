@@ -1,0 +1,5 @@
+When building on Windows to set arch settings use this ref:
+https://stackoverflow.com/questions/45226775/cmake-how-to-specify-target-platform
+cmake -G"Visual Studio 14 2015 Win64" -H%SOURCE_ROOT_DIR% -BC:\build\vs2015\x64\MyProject
+cmake -G"Visual Studio 14 2015" -H%SOURCE_ROOT_DIR% -BC:\build\vs2015\x64\MyProject
+cmake -G"Visual Studio 14 2015 ARM" -H%SOURCE_ROOT_DIR% -BC:\build\vs2015\x64\MyProject

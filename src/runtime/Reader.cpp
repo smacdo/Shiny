@@ -86,6 +86,7 @@ Value Reader::readPair(CharacterStream& input) {
   // Closing paren can be interpreted as the empty list in our mutually
   // recursive reader.
   if (input.peekIsMatch(0, ')')) {
+    input.nextChar();
     return vmState_->constants().emptyList;
   }
 
