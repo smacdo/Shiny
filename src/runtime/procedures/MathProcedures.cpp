@@ -4,6 +4,7 @@
 #include "runtime/RuntimeApi.h"
 #include "runtime/VmState.h"
 
+#include <charconv> // For string->number procedure.
 #include <cmath>
 #include <limits> // TODO: Remove when RuntimeAPI function TODO is done.
 
@@ -410,11 +411,79 @@ Value round_proc(ArgList& args, VmState&, EnvironmentFrame*) {
   return popArgumentOrThrow(args, ValueType::Fixnum);
 }
 
+#include <iostream> // TODO: REMOVE
+
+/**
+ * Takes a number as an argument and returns a string that is the external
+ * representation of said number.
+ */
+Value numberToString_proc(ArgList& args, VmState& vm, EnvironmentFrame*) {
+  // Char buffer large enough to hold a maximum/minimum sized fixnum_t to string
+  // form.
+  //
+  // Why +2?
+  //
+  // The first +1 is because maxdigits returns the minimum number of digits
+  // required without loss, so for a 'char' it returns 2 (0..99) instead of what
+  // we need which is 3 (0.255).
+  //
+  // The second +1 is because negative numbers need an additional character for
+  // the minus sign.
+  std::array<char, std::numeric_limits<fixnum_t>::digits10 + 2> buffer;
+
+  // Get arguments.
+  auto num = popArgumentOrThrow(args, ValueType::Fixnum);
+
+  // Convert and write to a temporary stack allocated string buffer.
+  // TODO: Support other bases than 10.
+  std::errc success{};
+  auto result = std::to_chars(
+      buffer.data(), buffer.data() + buffer.size(), num.toFixnum(), 10);
+
+  if (result.ec != success) {
+    // This should not happen and if it does then there's a bug in how we
+    // determine the size of 'buffer'.
+    throw Exception(
+        "fixnum too large for numberToString internal char buffer",
+        EXCEPTION_CALLSITE_ARGS);
+  }
+
+  // Create a new string with the convertd number and return it to the caller.
+  auto charsWritten = static_cast<size_t>(result.ptr - buffer.data());
+  assert(charsWritten <= buffer.size()); // One past end means <= not <.
+
+  return Value{vm.makeString(std::string_view(buffer.data(), charsWritten))};
+}
+
+/**
+ * Returns a number of the maximally precise representation expressed by the
+ * given string.
+ *
+ * If the argument cannot be represented as a numeric value than this procedure
+ * will return #f.
+ */
+Value stringToNumber_proc(ArgList& args, VmState&, EnvironmentFrame*) {
+  // TODO: Reject numbers like "4p" or "-3z".
+  // TODO: Support other bases than 10.
+  // TODO: Re-use the reader to ensure consistency in numeric parsing?
+  auto s = popArgumentOrThrow(args, ValueType::String);
+  auto sv = s.toStringView();
+
+  fixnum_t fixnum;
+  auto result = std::from_chars(sv.data(), sv.data() + sv.size(), fixnum, 10);
+
+  if (result.ec == std::errc::invalid_argument) {
+    return Value::False;
+  }
+
+  return Value{fixnum};
+}
+
 //------------------------------------------------------------------------------
 void Shiny::registerMathProcs(VmState& vm, EnvironmentFrame* env) {
   using namespace ProcedureNames;
 
-  static const std::array<PrimitiveProcDesc, 38> P{
+  static const std::array<PrimitiveProcDesc, 40> P{
       PrimitiveProcDesc{kIsNumber, &isNumber_proc},
       PrimitiveProcDesc{kIsComplex, &isComplex_proc},
       PrimitiveProcDesc{kIsReal, &isReal_proc},
@@ -459,6 +528,9 @@ void Shiny::registerMathProcs(VmState& vm, EnvironmentFrame* env) {
       PrimitiveProcDesc{kCeiling, &ceiling_proc},
       PrimitiveProcDesc{kTruncate, &truncate_proc},
       PrimitiveProcDesc{kRound, &round_proc},
+
+      PrimitiveProcDesc{"number->string", &numberToString_proc},
+      PrimitiveProcDesc{"string->number", &stringToNumber_proc},
   };
 
   defineProcedures(P.data(), P.size(), vm, env);

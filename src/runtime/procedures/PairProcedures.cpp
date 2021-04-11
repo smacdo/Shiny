@@ -40,15 +40,41 @@ Value cdr_proc(ArgList& args, VmState&, EnvironmentFrame*) {
   return cdr(p);
 }
 
+/**
+ * Stores the second argument in the car field of the first argument which is
+ * expected to be a pair.
+ */
+Value setCar_proc(ArgList& args, VmState&, EnvironmentFrame*) {
+  auto pair = popArgumentOrThrow(args, ValueType::Pair);
+  auto obj = popArgumentOrThrow(args);
+
+  set_car(pair, obj);
+  return pair;
+}
+
+/**
+ * Stores the second argument in the cdr field of the first argument which is
+ * expected to be a pair.
+ */
+Value setCdr_proc(ArgList& args, VmState&, EnvironmentFrame*) {
+  auto pair = popArgumentOrThrow(args, ValueType::Pair);
+  auto obj = popArgumentOrThrow(args);
+
+  set_cdr(pair, obj);
+  return pair;
+}
+
 //------------------------------------------------------------------------------
 void Shiny::registerPairProcs(VmState& vm, EnvironmentFrame* env) {
   using namespace ProcedureNames;
 
-  static const std::array<PrimitiveProcDesc, 4> P{
+  static const std::array<PrimitiveProcDesc, 6> P{
       PrimitiveProcDesc{"pair?", &isPair_proc},
       PrimitiveProcDesc("cons", &cons_proc),
       PrimitiveProcDesc("car", &car_proc),
       PrimitiveProcDesc("cdr", &cdr_proc),
+      PrimitiveProcDesc("set-car!", &setCar_proc),
+      PrimitiveProcDesc("set-cdr!", &setCdr_proc),
   };
 
   defineProcedures(P.data(), P.size(), vm, env);

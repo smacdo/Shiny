@@ -8,9 +8,12 @@ add_executable(test-shiny-runtime
     FreeListAllocatorTests.cpp
     EnvironmentTests.cpp
     EnvironmentFrameTests.cpp
+    EvaluatorBooleanTests.cpp
+    EvaluatorListTests.cpp
     EvaluatorProcedureTests.cpp
     EvaluatorMathTests.cpp
     EvaluatorPairTests.cpp
+    EvaluatorSymbolTests.cpp
     EvaluatorTests.cpp
     ExceptionTests.cpp
     MallocAllocatorTests.cpp

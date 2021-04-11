@@ -8,8 +8,11 @@ using namespace Shiny;
 
 //------------------------------------------------------------------------------
 void Shiny::registerBuiltinProcedures(VmState& vm, EnvironmentFrame* env) {
+  registerBooleanProcs(vm, env);
+  registerListProcs(vm, env);
   registerMathProcs(vm, env);
   registerPairProcs(vm, env);
+  registerSymbolProcs(vm, env);
 }
 
 //------------------------------------------------------------------------------

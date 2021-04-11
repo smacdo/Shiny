@@ -61,7 +61,8 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "bit": "cpp",
-        "cassert": "cpp"
+        "cassert": "cpp",
+        "charconv": "cpp"
     },
     "editor.minimap.maxColumn": 1,
     "C_Cpp.clang_format_fallbackStyle": "LLVM",

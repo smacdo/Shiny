@@ -179,3 +179,161 @@ TEST_CASE_METHOD(EvaluatorFixture, "cdr", "[Procedures]") {
     REQUIRE_THROWS_AS(fn3(), ArgCountMismatch);
   }
 }
+
+TEST_CASE_METHOD(EvaluatorFixture, "set car", "[Procedures]") {
+  SECTION("for improper pair") {
+    evaluate("(define foo (1 . 2))");
+    evaluate("(set-car! foo 3)");
+    auto v = evaluate("foo");
+
+    REQUIRE(ValueType::Pair == v.type());
+    REQUIRE(Value{3} == car(v));
+    REQUIRE(Value{2} == cdr(v));
+  }
+
+  SECTION("for one element list") {
+    evaluate("(define fox (1))");
+    evaluate("(set-car! fox 22)");
+    auto v = evaluate("fox");
+
+    REQUIRE(ValueType::Pair == v.type());
+    REQUIRE(Value{22} == car(v));
+    REQUIRE(Value::EmptyList == cdr(v));
+  }
+
+  SECTION("for two element list") {
+    evaluate("(define fox (1 2))");
+    evaluate("(set-car! fox #\\c)");
+    auto v = evaluate("fox");
+
+    REQUIRE(ValueType::Pair == v.type());
+    REQUIRE(Value{'c'} == car(v));
+    REQUIRE(Value{2} == cadr(v));
+    REQUIRE(Value::EmptyList == cddr(v));
+  }
+
+  SECTION("for three element list") {
+    evaluate("(define fox (1 2 3))");
+    evaluate("(set-car! fox #\\F)");
+    auto v = evaluate("fox");
+
+    REQUIRE(ValueType::Pair == v.type());
+    REQUIRE(Value{'F'} == car(v));
+    REQUIRE(Value{2} == cadr(v));
+    REQUIRE(Value{3} == caddr(v));
+    REQUIRE(Value::EmptyList == cdddr(v));
+  }
+
+  SECTION("middle of list") {
+    evaluate("(define hola (1 2 3))");
+    evaluate("(set-car! (cdr hola) -5)");
+    auto v = evaluate("hola");
+
+    REQUIRE(ValueType::Pair == v.type());
+    REQUIRE(Value{1} == car(v));
+    REQUIRE(Value{-5} == cadr(v));
+    REQUIRE(Value{3} == caddr(v));
+    REQUIRE(Value::EmptyList == cdddr(v));
+  }
+
+  SECTION("empty list is an error") {
+    auto fn = [this]() { evaluate("(set-car! '() 22)"); };
+    REQUIRE_THROWS_AS(fn(), WrongArgTypeException);
+  }
+
+  SECTION("non pair type is an error") {
+    auto fn1 = [this]() { evaluate("(set-car! 1 22)"); };
+    REQUIRE_THROWS_AS(fn1(), WrongArgTypeException);
+
+    auto fn2 = [this]() { evaluate("(set-car! #t 366)"); };
+    REQUIRE_THROWS_AS(fn2(), WrongArgTypeException);
+  }
+
+  SECTION("error if wrong argument count") {
+    auto fn1 = [this]() { evaluate("(set-car!)"); };
+    REQUIRE_THROWS_AS(fn1(), ArgumentMissingException);
+
+    auto fn2 = [this]() { evaluate("(set-car! '(1 2))"); };
+    REQUIRE_THROWS_AS(fn2(), ArgumentMissingException);
+
+    auto fn3 = [this]() { evaluate("(set-car! '(1 2 3) 4 5)"); };
+    REQUIRE_THROWS_AS(fn3(), ArgCountMismatch);
+  }
+}
+
+TEST_CASE_METHOD(EvaluatorFixture, "set cdr", "[Procedures]") {
+  SECTION("for improper pair") {
+    evaluate("(define foo (1 . 2))");
+    evaluate("(set-cdr! foo 3)");
+    auto v = evaluate("foo");
+
+    REQUIRE(ValueType::Pair == v.type());
+    REQUIRE(Value{1} == car(v));
+    REQUIRE(Value{3} == cdr(v));
+  }
+
+  SECTION("for one element list") {
+    evaluate("(define fox (1))");
+    evaluate("(set-cdr! fox 22)");
+    auto v = evaluate("fox");
+
+    REQUIRE(ValueType::Pair == v.type());
+    REQUIRE(Value{1} == car(v));
+    REQUIRE(Value{22} == cdr(v));
+  }
+
+  SECTION("for two element list") {
+    evaluate("(define fox (1 2))");
+    evaluate("(set-cdr! fox #\\c)");
+    auto v = evaluate("fox");
+
+    REQUIRE(ValueType::Pair == v.type());
+    REQUIRE(Value{1} == car(v));
+    REQUIRE(Value{'c'} == cdr(v));
+  }
+
+  SECTION("for three element list") {
+    evaluate("(define fox (1 2 3))");
+    evaluate("(set-cdr! fox #\\F)");
+    auto v = evaluate("fox");
+
+    REQUIRE(ValueType::Pair == v.type());
+    REQUIRE(Value{1} == car(v));
+    REQUIRE(Value{'F'} == cdr(v));
+  }
+
+  SECTION("middle of list") {
+    evaluate("(define hola (1 2 3))");
+    evaluate("(set-cdr! (cdr hola) -5)");
+    auto v = evaluate("hola");
+
+    REQUIRE(ValueType::Pair == v.type());
+    REQUIRE(Value{1} == car(v));
+    REQUIRE(Value{2} == cadr(v));
+    REQUIRE(Value{-5} == cddr(v));
+  }
+
+  SECTION("empty list is an error") {
+    auto fn = [this]() { evaluate("(set-cdr! '() 22)"); };
+    REQUIRE_THROWS_AS(fn(), WrongArgTypeException);
+  }
+
+  SECTION("non pair type is an error") {
+    auto fn1 = [this]() { evaluate("(set-cdr! 1 22)"); };
+    REQUIRE_THROWS_AS(fn1(), WrongArgTypeException);
+
+    auto fn2 = [this]() { evaluate("(set-cdr! #t 366)"); };
+    REQUIRE_THROWS_AS(fn2(), WrongArgTypeException);
+  }
+
+  SECTION("error if wrong argument count") {
+    auto fn1 = [this]() { evaluate("(set-cdr!)"); };
+    REQUIRE_THROWS_AS(fn1(), ArgumentMissingException);
+
+    auto fn2 = [this]() { evaluate("(set-cdr! '(1 2))"); };
+    REQUIRE_THROWS_AS(fn2(), ArgumentMissingException);
+
+    auto fn3 = [this]() { evaluate("(set-cdr! '(1 2 3) 4 5)"); };
+    REQUIRE_THROWS_AS(fn3(), ArgCountMismatch);
+  }
+}

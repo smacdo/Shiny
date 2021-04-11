@@ -31,8 +31,11 @@ namespace Shiny {
   /** Register all builtin procedures. */
   void registerBuiltinProcedures(VmState& vm, EnvironmentFrame* env);
 
+  void registerBooleanProcs(VmState& vm, EnvironmentFrame* env);
   void registerMathProcs(VmState& vm, EnvironmentFrame* env);
   void registerPairProcs(VmState& vm, EnvironmentFrame* env);
+  void registerListProcs(VmState& vm, EnvironmentFrame* env);
+  void registerSymbolProcs(VmState& vm, EnvironmentFrame* env);
 
   namespace ProcedureNames {
     constexpr const char* kIsNumber = "number?";

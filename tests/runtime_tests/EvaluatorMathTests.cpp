@@ -906,3 +906,69 @@ TEST_CASE_METHOD(EvaluatorFixture, "Round", "[Procedures]") {
     REQUIRE_THROWS_AS(fn2(), ArgCountMismatch);
   }
 }
+
+TEST_CASE_METHOD(EvaluatorFixture, "number to string", "[Procedures]") {
+  SECTION("returns the equiv printable fixnum") {
+    REQUIRE("\"0\"" == evaluate("(number->string 0)").toString());
+    REQUIRE("\"10\"" == evaluate("(number->string 10)").toString());
+    REQUIRE("\"-3\"" == evaluate("(number->string -3)").toString());
+    REQUIRE("\"67921\"" == evaluate("(number->string 67921)").toString());
+    REQUIRE(
+        "\"2147483647\"" == evaluate("(number->string 2147483647)").toString());
+    REQUIRE(
+        "\"-2147483648\"" ==
+        evaluate("(number->string -2147483648)").toString());
+  }
+
+  SECTION("error if argument is not a numeric type") {
+    auto fn1 = [this]() { evaluate("(number->string \"42\")"); };
+    REQUIRE_THROWS_AS(fn1(), WrongArgTypeException);
+
+    auto fn2 = [this]() { evaluate("(number->string #t)"); };
+    REQUIRE_THROWS_AS(fn2(), WrongArgTypeException);
+  }
+
+  SECTION("error if wrong argument count") {
+    auto fn1 = [this]() { evaluate("(number->string)"); };
+    REQUIRE_THROWS_AS(fn1(), ArgumentMissingException);
+
+    auto fn2 = [this]() { evaluate("(number->string 4 5 6)"); };
+    REQUIRE_THROWS_AS(fn2(), ArgCountMismatch);
+  }
+}
+
+TEST_CASE_METHOD(EvaluatorFixture, "string to number", "[Procedures]") {
+  SECTION("returns a fixnum for a integer in a string") {
+    REQUIRE(Value{0} == evaluate("(string->number \"0\")"));
+    REQUIRE(Value{10} == evaluate("(string->number \"10\")"));
+    REQUIRE(Value{-3} == evaluate("(string->number \"-3\")"));
+    REQUIRE(Value{67921} == evaluate("(string->number \"67921\")"));
+    REQUIRE(Value{2147483647} == evaluate("(string->number \"2147483647\")"));
+    REQUIRE(
+        Value{(fixnum_t)-2147483648} ==
+        evaluate("(string->number \"-2147483648\")"));
+  }
+
+  SECTION("returns false for strings that are not numbers") {
+    REQUIRE(Value::False == evaluate("(string->number \"\")"));
+    REQUIRE(Value::False == evaluate("(string->number \"hello\")"));
+    REQUIRE(Value::False == evaluate("(string->number \"z3\")"));
+    REQUIRE(Value::False == evaluate("(string->number \" -4\")"));
+  }
+
+  SECTION("error if argument is not a string type") {
+    auto fn1 = [this]() { evaluate("(string->number 42)"); };
+    REQUIRE_THROWS_AS(fn1(), WrongArgTypeException);
+
+    auto fn2 = [this]() { evaluate("(string->number #f)"); };
+    REQUIRE_THROWS_AS(fn2(), WrongArgTypeException);
+  }
+
+  SECTION("error if wrong argument count") {
+    auto fn1 = [this]() { evaluate("(string->number)"); };
+    REQUIRE_THROWS_AS(fn1(), ArgumentMissingException);
+
+    auto fn2 = [this]() { evaluate("(string->number \"4\" 5 6)"); };
+    REQUIRE_THROWS_AS(fn2(), ArgCountMismatch);
+  }
+}
